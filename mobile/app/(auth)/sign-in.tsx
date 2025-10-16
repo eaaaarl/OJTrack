@@ -2,10 +2,14 @@ import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputFields";
 import OAuth from "@/components/OAuth";
 import { icons, images } from "@/constant/image";
-import { Link } from "expo-router";
+import { useSignInMutation } from "@/features/auth/api/authApi";
+import { Link, router } from "expo-router";
 import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
+  Modal,
   ScrollView,
   Text,
   View
@@ -18,10 +22,81 @@ const SignIn = () => {
     email: "",
     password: "",
   });
+  const [errors, setErrors] = useState({
+    email: "",
+    password: "",
+  });
+
+  const validateForm = useCallback(() => {
+    let isValid = true;
+    const newErrors = {
+      email: "",
+      password: "",
+      name: "",
+      phone: ""
+    };
+
+    if (!form.email.trim()) {
+      newErrors.email = "Email is required";
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      newErrors.email = "Please enter a valid email";
+      isValid = false;
+    }
+
+    if (!form.password) {
+      newErrors.password = "Password is required";
+      isValid = false;
+    } else if (form.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  }, [form.email, form.password]);
+
+  const [signIn, { isLoading }] = useSignInMutation()
 
   const onSignInPress = useCallback(async () => {
-    console.log('forms', form)
-  }, [form]);
+    setErrors({
+      email: "",
+      password: "",
+    });
+
+    if (!validateForm()) {
+      return;
+    }
+
+
+    try {
+      const res = await signIn({
+        email: form.email,
+        password: form.password
+      })
+
+      console.log('sign in response', res)
+
+      if (res.error) {
+        Alert.alert(
+          'Sign in Failed',
+          (res.error as { message: string }).message || 'An error occured during sign in',
+          [{ text: 'Ok' }]
+        )
+        return;
+      }
+
+      setForm({
+        email: '',
+        password: ''
+      })
+
+      router.replace('/(root)/tabs/home')
+    } catch (error) {
+      console.error('signup error:', error);
+    }
+
+  }, [validateForm, form.email, form.password, signIn]);
 
   return (
     <>
@@ -43,10 +118,14 @@ const SignIn = () => {
               value={form.email}
               onChangeText={(value) => {
                 setForm({ ...form, email: value });
-
+                if (errors.email) setErrors({ ...errors, email: '' })
               }}
             />
-
+            {errors.email ? (
+              <Text className="text-red-500 text-sm mt-1 ml-1">
+                {errors.email}
+              </Text>
+            ) : null}
             <InputField
               label="Password"
               placeholder="Enter password"
@@ -56,9 +135,14 @@ const SignIn = () => {
               value={form.password}
               onChangeText={(value) => {
                 setForm({ ...form, password: value });
+                if (errors.password) setErrors({ ...errors, password: '' })
               }}
             />
-
+            {errors.password ? (
+              <Text className="text-red-500 text-sm mt-1 ml-1">
+                {errors.password}
+              </Text>
+            ) : null}
             <CustomButton
               title="Sign In"
               onPress={onSignInPress}
@@ -84,23 +168,20 @@ const SignIn = () => {
         </View>
       </ScrollView>
 
-      {/*  <Modal
+      <Modal
         transparent
         visible={isLoading}
         animationType="fade"
       >
         <View
           className="flex-1 justify-center items-center"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
         >
           <View className="bg-white p-6 rounded-2xl items-center">
             <ActivityIndicator size="large" color="#0286FF" />
-            <Text className="mt-4 text-base text-gray-700 font-medium">
-              Signing in...
-            </Text>
           </View>
         </View>
-      </Modal> */}
+      </Modal>
     </>
   );
 };

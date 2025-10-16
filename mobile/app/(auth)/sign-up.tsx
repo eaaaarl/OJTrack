@@ -234,7 +234,7 @@ const SignUp = () => {
       >
         <View
           className="flex-1 justify-center items-center"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
         >
           <View className="bg-white p-6 rounded-2xl items-center">
             <ActivityIndicator size="large" color="#0286FF" />

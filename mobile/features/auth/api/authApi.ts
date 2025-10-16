@@ -1,6 +1,11 @@
 import { supabase } from "@/libs/supabase";
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
-import { signUpPayload } from "./interface";
+import {
+  createStudentProfilePayload,
+  signInPayload,
+  signUpPayload,
+  StudentProfile,
+} from "./interface";
 
 export const authApi = createApi({
   reducerPath: "authApi",
@@ -52,7 +57,95 @@ export const authApi = createApi({
         }
       },
     }),
+
+    signIn: builder.mutation<any, signInPayload>({
+      queryFn: async ({ email, password }) => {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          return {
+            error: {
+              message: error.message,
+            },
+          };
+        }
+
+        return {
+          data: {
+            user: data,
+          },
+        };
+      },
+    }),
+
+    signOut: builder.mutation<any, void>({
+      queryFn: async () => {
+        await supabase.auth.signOut();
+        return {
+          data: {
+            status: true,
+          },
+        };
+      },
+    }),
+
+    // Checking student profiles
+    checkStudentProfiles: builder.query<StudentProfile, { userId: string }>({
+      queryFn: async ({ userId }) => {
+        const { data, error } = await supabase
+          .from("student_profiles")
+          .select("*, profile:student_profiles_user_id_fkey(*)")
+          .eq("user_id", userId)
+          .single();
+
+        if (error) {
+          return {
+            error: {
+              status: error.code,
+              message: error.message,
+            },
+          };
+        }
+
+        return {
+          data: data,
+        };
+      },
+    }),
+
+    // Creating student profiles
+    createStudentProfile: builder.mutation<
+      StudentProfile,
+      createStudentProfilePayload
+    >({
+      queryFn: async (profileData) => {
+        const { data, error } = await supabase
+          .from("student_profiles")
+          .insert([profileData])
+          .select()
+          .single();
+
+        if (error) {
+          return {
+            error: {
+              message: error.message,
+            },
+          };
+        }
+
+        return { data };
+      },
+    }),
   }),
 });
 
-export const { useSignUpMutation } = authApi;
+export const {
+  useSignUpMutation,
+  useSignOutMutation,
+  useSignInMutation,
+  useCheckStudentProfilesQuery,
+  useCreateStudentProfileMutation,
+} = authApi;

@@ -1,13 +1,28 @@
+import { useCheckStudentProfilesQuery } from '@/features/auth/api/authApi'
 import { useAppSelector } from '@/libs/redux/hooks'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import React, { useState } from 'react'
-import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { router } from 'expo-router'
+import React, { useEffect, useState } from 'react'
+import { ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function Home() {
   const currentUser = useAppSelector((state) => state.auth)
   const insets = useSafeAreaInsets()
   const [signedIn, setSignedIn] = useState(false)
+  const [showFillUpModal, setShowFillUpModal] = useState(false)
+
+  const { data: studentProfile, isLoading } = useCheckStudentProfilesQuery({ userId: currentUser.id })
+
+  useEffect(() => {
+    if (!studentProfile && !isLoading) {
+      setShowFillUpModal(true)
+
+      return;
+    }
+
+    setShowFillUpModal(false)
+  }, [studentProfile, isLoading])
 
   return (
     <ScrollView className="flex-1 bg-blue-50">
@@ -19,7 +34,7 @@ export default function Home() {
       <View className="p-6 gap-6">
         <View className="bg-white rounded-lg p-6 shadow-md">
           <Text className="text-2xl font-semibold text-gray-800">Welcome Back</Text>
-          <Text className="text-gray-600 mt-2">John Doe | ID: 2024-001</Text>
+          <Text className="text-gray-600 mt-2">{studentProfile?.profile.name} | ID: {studentProfile?.student_id}</Text>
           <Text className="text-sm text-gray-500 mt-1">On-The-Job Training Program</Text>
         </View>
 
@@ -103,7 +118,22 @@ export default function Home() {
       </View>
 
       <Modal
-        visible={true}
+        transparent
+        visible={isLoading}
+        animationType="fade"
+      >
+        <View
+          className="flex-1 justify-center items-center"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
+        >
+          <View className="bg-white p-6 rounded-2xl items-center">
+            <ActivityIndicator size="large" color="#0286FF" />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showFillUpModal}
         transparent={true}
         animationType="fade"
       >
@@ -123,8 +153,7 @@ export default function Home() {
             {/* Buttons */}
             <TouchableOpacity
               onPress={() => {
-                setShowProfileAlert(false)
-                setScreen('complete-profile')
+                router.replace('/(root)/tabs/fill-up-form')
               }}
               className="bg-indigo-600 rounded-lg py-3"
             >
@@ -133,7 +162,7 @@ export default function Home() {
 
             <TouchableOpacity
               onPress={() => {
-                setShowProfileAlert(false)
+
               }}
               className="bg-gray-200 rounded-lg py-3"
             >
