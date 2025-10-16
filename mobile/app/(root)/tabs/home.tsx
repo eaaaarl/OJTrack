@@ -23,6 +23,7 @@ export default function Home() {
 
     setShowFillUpModal(false)
   }, [studentProfile, isLoading])
+
   return (
     <ScrollView className="flex-1 bg-blue-50">
       <View className="bg-indigo-600 px-6 py-6">
@@ -33,7 +34,7 @@ export default function Home() {
       <View className="p-6 gap-6">
         <View className="bg-white rounded-lg p-6 shadow-md">
           <Text className="text-2xl font-semibold text-gray-800">Welcome Back</Text>
-          <Text className="text-gray-600 mt-2">John Doe | ID: 2024-001</Text>
+          <Text className="text-gray-600 mt-2">{studentProfile?.profile.name} | ID: {studentProfile?.student_id}</Text>
           <Text className="text-sm text-gray-500 mt-1">On-The-Job Training Program</Text>
         </View>
 

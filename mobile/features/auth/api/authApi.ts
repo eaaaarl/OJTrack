@@ -4,6 +4,7 @@ import {
   createStudentProfilePayload,
   signInPayload,
   signUpPayload,
+  StudentProfile,
 } from "./interface";
 
 export const authApi = createApi({
@@ -92,11 +93,11 @@ export const authApi = createApi({
     }),
 
     // Checking student profiles
-    checkStudentProfiles: builder.query<any, { userId: string }>({
+    checkStudentProfiles: builder.query<StudentProfile, { userId: string }>({
       queryFn: async ({ userId }) => {
         const { data, error } = await supabase
           .from("student_profiles")
-          .select("*")
+          .select("*, profile:student_profiles_user_id_fkey(*)")
           .eq("user_id", userId)
           .single();
 
@@ -116,7 +117,10 @@ export const authApi = createApi({
     }),
 
     // Creating student profiles
-    createStudentProfile: builder.mutation<any, createStudentProfilePayload>({
+    createStudentProfile: builder.mutation<
+      StudentProfile,
+      createStudentProfilePayload
+    >({
       queryFn: async (profileData) => {
         const { data, error } = await supabase
           .from("student_profiles")
