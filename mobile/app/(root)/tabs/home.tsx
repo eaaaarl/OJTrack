@@ -1,28 +1,28 @@
+import { useAppSelector } from '@/libs/redux/hooks'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import React, { useState } from 'react'
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function Home() {
+  const currentUser = useAppSelector((state) => state.auth)
+  const insets = useSafeAreaInsets()
   const [signedIn, setSignedIn] = useState(false)
 
   return (
     <ScrollView className="flex-1 bg-blue-50">
-      {/* Header */}
       <View className="bg-indigo-600 px-6 py-6">
-        <Text className="text-3xl font-bold text-white">OJTrack</Text>
+        <Text className="text-3xl font-bold text-white" style={{ marginTop: insets.top }}>OJTrack</Text>
         <Text className="text-indigo-200 text-sm mt-1">Student Monitoring System</Text>
       </View>
 
-      {/* Main Content */}
       <View className="p-6 gap-6">
-        {/* Welcome Section */}
         <View className="bg-white rounded-lg p-6 shadow-md">
           <Text className="text-2xl font-semibold text-gray-800">Welcome Back</Text>
           <Text className="text-gray-600 mt-2">John Doe | ID: 2024-001</Text>
           <Text className="text-sm text-gray-500 mt-1">On-The-Job Training Program</Text>
         </View>
 
-        {/* Camera Sign-In Button */}
         <View className="gap-3">
           <Text className="text-lg font-semibold text-gray-800">Daily Check-In</Text>
           <TouchableOpacity
@@ -46,9 +46,7 @@ export default function Home() {
           </TouchableOpacity>
         </View>
 
-        {/* Status Cards */}
         <View className="flex-row gap-4">
-          {/* Hours Today */}
           <View className="flex-1 bg-white rounded-lg p-4 shadow-md">
             <View className="flex-row items-center gap-2 mb-2">
               <MaterialCommunityIcons name="clock-outline" size={24} color="#2563eb" />
@@ -57,7 +55,6 @@ export default function Home() {
             <Text className="text-2xl font-bold text-gray-800">8.5h</Text>
           </View>
 
-          {/* Status */}
           <View className="flex-1 bg-white rounded-lg p-4 shadow-md">
             <View className="flex-row items-center gap-2 mb-2">
               <MaterialCommunityIcons name="check-circle" size={24} color="#16a34a" />
@@ -67,7 +64,6 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Recent Activity */}
         <View className="bg-white rounded-lg p-6 shadow-md">
           <Text className="text-lg font-semibold text-gray-800 mb-4">This Week</Text>
           <View className="gap-3">
@@ -90,7 +86,6 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Quick Actions */}
         <View className="flex-row gap-3">
           <TouchableOpacity className="flex-1 bg-white rounded-lg p-4 shadow-md items-center">
             <MaterialCommunityIcons name="alert-circle-outline" size={24} color="#ea580c" />
@@ -106,6 +101,47 @@ export default function Home() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <Modal
+        visible={true}
+        transparent={true}
+        animationType="fade"
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center p-6">
+          <View className="bg-white rounded-lg w-full p-6 gap-4 max-w-md">
+            {/* Alert Header */}
+            <View className="items-center gap-3">
+              <View className="w-16 h-16 bg-orange-100 rounded-full items-center justify-center">
+                <MaterialCommunityIcons name="alert-circle" size={32} color="#ea580c" />
+              </View>
+              <Text className="text-2xl font-bold text-gray-800 text-center">Complete Your Profile</Text>
+              <Text className="text-sm text-gray-600 text-center">
+                You need to fill in your OJT information to continue using OJTrack.
+              </Text>
+            </View>
+
+            {/* Buttons */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowProfileAlert(false)
+                setScreen('complete-profile')
+              }}
+              className="bg-indigo-600 rounded-lg py-3"
+            >
+              <Text className="text-white font-bold text-center">Complete Profile</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowProfileAlert(false)
+              }}
+              className="bg-gray-200 rounded-lg py-3"
+            >
+              <Text className="text-gray-800 font-semibold text-center">Maybe Later</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   )
 }

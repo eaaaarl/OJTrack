@@ -7,15 +7,11 @@ export default function Profile() {
   const insets = useSafeAreaInsets()
   return (
     <ScrollView className="flex-1 bg-blue-50">
-      {/* Header */}
       <View className="bg-indigo-600 px-6 py-6">
         <Text className="text-3xl font-bold text-white" style={{ marginTop: insets.top }}>Profile</Text>
         <Text className="text-indigo-200 text-sm mt-1">Student Information</Text>
       </View>
-
-      {/* Main Content */}
       <View className="p-6 gap-6">
-        {/* Profile Card */}
         <View className="bg-white rounded-lg p-6 shadow-md items-center">
           <View className="w-24 h-24 bg-indigo-600 rounded-full items-center justify-center mb-4">
             <MaterialCommunityIcons name="account" size={64} color="white" />
@@ -25,7 +21,6 @@ export default function Profile() {
           <Text className="text-gray-600 text-sm mt-1">OJT Program - Batch 2024</Text>
         </View>
 
-        {/* Personal Information */}
         <View className="bg-white rounded-lg p-6 shadow-md">
           <Text className="text-lg font-semibold text-gray-800 mb-4">Personal Information</Text>
 
@@ -64,7 +59,6 @@ export default function Profile() {
           </View>
         </View>
 
-        {/* OJT Information */}
         <View className="bg-white rounded-lg p-6 shadow-md">
           <Text className="text-lg font-semibold text-gray-800 mb-4">OJT Information</Text>
 
@@ -103,7 +97,6 @@ export default function Profile() {
           </View>
         </View>
 
-        {/* Action Buttons */}
         <View className="gap-3">
           <TouchableOpacity className="bg-indigo-600 rounded-lg py-3 flex-row items-center justify-center gap-2">
             <MaterialCommunityIcons name="pencil" size={20} color="white" />
