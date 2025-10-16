@@ -23,7 +23,13 @@ export default function TabsLayout() {
           )
         }}
       />
-
+      <Tabs.Screen
+        name='fill-up-form'
+        options={{
+          href: null,
+          tabBarStyle: { display: 'none' }
+        }}
+      />
     </Tabs>
   )
 }

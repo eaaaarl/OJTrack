@@ -1,3 +1,4 @@
+import { useSignOutMutation } from '@/features/auth/api/authApi'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import React from 'react'
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
@@ -5,6 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function Profile() {
   const insets = useSafeAreaInsets()
+
+  const [signOut] = useSignOutMutation()
+
+  const onPressSignOut = async () => {
+    await signOut()
+  }
+
   return (
     <ScrollView className="flex-1 bg-blue-50">
       <View className="bg-indigo-600 px-6 py-6">
@@ -103,7 +111,7 @@ export default function Profile() {
             <Text className="text-white font-semibold">Edit Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity className="bg-white rounded-lg py-3 flex-row items-center justify-center gap-2 border border-red-500">
+          <TouchableOpacity onPress={onPressSignOut} className="bg-white rounded-lg py-3 flex-row items-center justify-center gap-2 border border-red-500">
             <MaterialCommunityIcons name="logout" size={20} color="#ef4444" />
             <Text className="text-red-500 font-semibold">Logout</Text>
           </TouchableOpacity>
