@@ -9,7 +9,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 export default function Home() {
   const currentUser = useAppSelector((state) => state.auth)
   const insets = useSafeAreaInsets()
-  const [signedIn, setSignedIn] = useState(false)
   const [showFillUpModal, setShowFillUpModal] = useState(false)
 
   const { data: studentProfile, isLoading } = useCheckStudentProfilesQuery({ userId: currentUser.id })
@@ -33,7 +32,7 @@ export default function Home() {
 
       <View className="p-6 gap-6">
         <View className="bg-white rounded-lg p-6 shadow-md">
-          <Text className="text-2xl font-semibold text-gray-800">Welcome Back</Text>
+          <Text className="text-2xl font-semibold text-gray-800">Welcome Back {studentProfile?.profile.name?.split(' ')[0]}</Text>
           <Text className="text-gray-600 mt-2">{studentProfile?.profile.name} | ID: {studentProfile?.student_id}</Text>
           <Text className="text-sm text-gray-500 mt-1">On-The-Job Training Program</Text>
         </View>
@@ -41,21 +40,21 @@ export default function Home() {
         <View className="gap-3">
           <Text className="text-lg font-semibold text-gray-800">Daily Check-In</Text>
           <TouchableOpacity
-            onPress={() => setSignedIn(!signedIn)}
-            className={`py-12 rounded-lg flex-row items-center justify-center gap-3 ${signedIn ? 'bg-green-500' : 'bg-indigo-600'
-              } shadow-lg active:opacity-80`}
+            onPress={() => { router.replace('/(root)/(camera)/camera') }}
+            className={`py-12 rounded-lg flex-row items-center justify-center gap-3 bg-indigo-600
+              shadow-lg active:opacity-80`}
           >
             <MaterialCommunityIcons
-              name={signedIn ? 'check-circle' : 'camera'}
+              name={'camera'}
               size={48}
               color="white"
             />
             <View>
               <Text className="text-xl font-semibold text-white">
-                {signedIn ? 'Signed In Today' : 'Sign In with Camera'}
+                Sign In with Camera
               </Text>
               <Text className="text-sm text-white opacity-90">
-                {signedIn ? '✓ 09:30 AM' : 'Tap to capture'}
+                Tap to capture
               </Text>
             </View>
           </TouchableOpacity>
@@ -83,19 +82,19 @@ export default function Home() {
           <Text className="text-lg font-semibold text-gray-800 mb-4">This Week</Text>
           <View className="gap-3">
             <View className="flex-row justify-between items-center py-2 border-b border-gray-200">
-              <Text className="text-gray-700">Monday</Text>
+              <Text className="text-gray-700 font-semibold">Monday</Text>
               <Text className="text-gray-600 text-sm">8h 30m</Text>
             </View>
             <View className="flex-row justify-between items-center py-2 border-b border-gray-200">
-              <Text className="text-gray-700">Tuesday</Text>
+              <Text className="text-gray-700 font-semibold">Tuesday</Text>
               <Text className="text-gray-600 text-sm">9h 00m</Text>
             </View>
             <View className="flex-row justify-between items-center py-2 border-b border-gray-200">
-              <Text className="text-gray-700">Wednesday</Text>
+              <Text className="text-gray-700 font-semibold">Wednesday</Text>
               <Text className="text-gray-600 text-sm">8h 45m</Text>
             </View>
             <View className="flex-row justify-between items-center py-2">
-              <Text className="text-gray-700">Thursday</Text>
+              <Text className="text-gray-700 font-semibold">Thursday</Text>
               <Text className="text-indigo-600 font-semibold">Today</Text>
             </View>
           </View>
@@ -139,7 +138,6 @@ export default function Home() {
       >
         <View className="flex-1 bg-black/50 justify-center items-center p-6">
           <View className="bg-white rounded-lg w-full p-6 gap-4 max-w-md">
-            {/* Alert Header */}
             <View className="items-center gap-3">
               <View className="w-16 h-16 bg-orange-100 rounded-full items-center justify-center">
                 <MaterialCommunityIcons name="alert-circle" size={32} color="#ea580c" />
@@ -150,7 +148,6 @@ export default function Home() {
               </Text>
             </View>
 
-            {/* Buttons */}
             <TouchableOpacity
               onPress={() => {
                 router.replace('/(root)/tabs/fill-up-form')
