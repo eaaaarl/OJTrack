@@ -1,13 +1,17 @@
+import { useAppSelector } from '@/libs/redux/hooks'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { CameraView, useCameraPermissions } from 'expo-camera'
+import * as Location from 'expo-location'
 import { router } from 'expo-router'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Image, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function Camera() {
+  const currentUser = useAppSelector((state) => state.auth)
   const insets = useSafeAreaInsets()
   const [permission, requestPermission] = useCameraPermissions()
+  const [permissionLocation, setPermissionLocation] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [capturedPhoto, setCapturedPhoto] = useState(null)
   const cameraRef = useRef(null)
@@ -18,6 +22,63 @@ export default function Camera() {
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+
+  // Location Permission
+  const requestLocationPermission = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync()
+      setPermissionLocation(status === 'granted')
+      return status === 'granted';
+    } catch (error) {
+      console.log('Permission location error:', error);
+      return false;
+    }
+  }
+
+  const getCurrentLocation = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const hasPermission = await requestLocationPermission();
+      if (!hasPermission) {
+        Alert.alert(
+          'Location Permission Required',
+          'Please enable location permissions to see your current location and find nearby rides.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Location.requestForegroundPermissionsAsync() }
+          ]
+        );
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const address = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      console.log('Address', JSON.stringify(address, null, 2))
+      console.log('location', JSON.stringify(location, null, 2))
+    } catch (error) {
+      console.log('Location error:', error);
+      Alert.alert(
+        'Location Error',
+        'Unable to get your current location. Please try again or check your location settings.'
+      );
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser) {
+      getCurrentLocation();
+    }
+  }, [currentUser, getCurrentLocation]);
+
+  // Camera Permission
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -59,6 +120,7 @@ export default function Camera() {
           skipProcessing: false
         })
         setCapturedPhoto(photo)
+        console.log('picture', photo)
       } catch (error) {
         Alert.alert('Error', 'Failed to take picture')
       }
@@ -78,7 +140,6 @@ export default function Camera() {
     setCapturedPhoto(null)
   }
 
-  // Format time as HH:MM:SS with date
   const formatTime = (date: Date) => {
     const hours = String(date.getHours()).padStart(2, '0')
     const minutes = String(date.getMinutes()).padStart(2, '0')
@@ -104,7 +165,6 @@ export default function Camera() {
           style={{ flex: 1 }}
         />
 
-        {/* Overlay with timestamp */}
         <View className="absolute top-0 left-0 right-0 bottom-0 flex-col justify-between p-4">
           <View style={{ marginTop: insets.top }}>
             <View className="bg-black/70 rounded-lg p-4 items-center">
@@ -141,48 +201,47 @@ export default function Camera() {
         ref={cameraRef}
         style={{ flex: 1 }}
         facing="front"
-      >
-        <View className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/50 to-transparent p-4" style={{ paddingTop: insets.top + 8 }}>
-          <Text className="text-white text-xl font-bold">Face Recognition Check-In</Text>
-          <Text className="text-indigo-200 text-sm">Position your face in the center</Text>
-        </View>
+      />
+      <View className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/50 to-transparent p-4" style={{ paddingTop: insets.top + 8 }}>
+        <Text className="text-white text-xl font-bold">Face Recognition Check-In</Text>
+        <Text className="text-indigo-200 text-sm">Position your face in the center</Text>
+      </View>
 
-        <View className="absolute top-24 right-4 bg-black/70 rounded-lg p-3 items-center">
-          <Text className="text-white text-2xl font-bold font-mono">{timeDisplay.time}</Text>
-          <Text className="text-indigo-300 text-sm mt-1">{timeDisplay.date}</Text>
-        </View>
+      <View className="absolute top-24 right-4 bg-black/70 rounded-lg p-3 items-center">
+        <Text className="text-white text-2xl font-bold font-mono">{timeDisplay.time}</Text>
+        <Text className="text-indigo-300 text-sm mt-1">{timeDisplay.date}</Text>
+      </View>
 
-        <View className="absolute inset-0 flex-col items-center justify-center">
-          <View
-            className="border-4 border-indigo-500 rounded-full"
-            style={{
-              width: 240,
-              height: 240,
-              opacity: 0.6
-            }}
-          />
-          <Text className="text-white text-sm mt-4 bg-black/50 px-4 py-2 rounded-lg">
-            Look at the camera
-          </Text>
-        </View>
+      <View className="absolute inset-0 flex-col items-center justify-center">
+        <View
+          className="border-4 border-indigo-500 rounded-full"
+          style={{
+            width: 240,
+            height: 240,
+            opacity: 0.6
+          }}
+        />
+        <Text className="text-white font-semibold text-sm mt-4 bg-black/50 px-4 py-2 rounded-lg">
+          Look at the camera
+        </Text>
+      </View>
 
-        <View style={{ marginBottom: insets.bottom }} className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent flex-row items-center justify-between p-6">
-          <TouchableOpacity className="p-3" onPress={() => router.replace('/(root)/tabs/home')}>
-            <MaterialCommunityIcons name="close" size={28} color="white" />
-          </TouchableOpacity>
+      <View style={{ marginBottom: insets.bottom }} className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent flex-row items-center justify-between p-6">
+        <TouchableOpacity className="p-3" onPress={() => router.replace('/(root)/tabs/home')}>
+          <MaterialCommunityIcons name="close" size={28} color="white" />
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={takePicture}
-            className="bg-indigo-600 rounded-full p-5"
-          >
-            <MaterialCommunityIcons name="camera" size={32} color="white" />
-          </TouchableOpacity>
+        <TouchableOpacity
+          onPress={takePicture}
+          className="bg-indigo-600 rounded-full p-5"
+        >
+          <MaterialCommunityIcons name="camera" size={32} color="white" />
+        </TouchableOpacity>
 
-          <TouchableOpacity className="p-3">
-            <MaterialCommunityIcons name="flash-off" size={28} color="white" />
-          </TouchableOpacity>
-        </View>
-      </CameraView>
+        <TouchableOpacity className="p-3">
+          <MaterialCommunityIcons name="flash-off" size={28} color="white" />
+        </TouchableOpacity>
+      </View>
     </View>
   )
 }
