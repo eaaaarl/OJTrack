@@ -250,20 +250,6 @@ export default function Camera() {
         <Text className="text-indigo-300 text-sm mt-1">{timeDisplay.date}</Text>
       </View>
 
-      <View className="absolute inset-0 flex-col items-center justify-center">
-        <View
-          className="border-4 border-indigo-500 rounded-full"
-          style={{
-            width: 240,
-            height: 240,
-            opacity: 0.6
-          }}
-        />
-        <Text className="text-white font-semibold text-sm mt-4 bg-black/50 px-4 py-2 rounded-lg">
-          Look at the camera
-        </Text>
-      </View>
-
       <View style={{ marginBottom: insets.bottom }} className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent flex-row items-center justify-between p-6">
         <TouchableOpacity className="p-3" onPress={() => router.replace('/(root)/tabs/home')}>
           <MaterialCommunityIcons name="close" size={28} color="white" />
