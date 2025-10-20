@@ -1,4 +1,6 @@
 import { useCheckStudentProfilesQuery } from '@/features/auth/api/authApi'
+import { useGetTodayAttendanceQuery, useGetWeekAttendanceQuery } from '@/features/student/api/studentApi'
+import { getWeekDates } from '@/features/student/utils/getWeeksDate'
 import { useAppSelector } from '@/libs/redux/hooks'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { router } from 'expo-router'
@@ -12,6 +14,24 @@ export default function Home() {
   const [showFillUpModal, setShowFillUpModal] = useState(false)
 
   const { data: studentProfile, isLoading } = useCheckStudentProfilesQuery({ userId: currentUser.id })
+  const { data: todayAttendance, isLoading: todayAttendanceLoading } = useGetTodayAttendanceQuery({ userId: currentUser.id })
+  const { data: weekAttendance, isLoading: weekAttendanceLoading } = useGetWeekAttendanceQuery({ userId: currentUser.id })
+
+  const weekDates = getWeekDates()
+
+  const weekData = weekDates.map(({ day, date }) => {
+    const attendance = weekAttendance?.find(a => a.date === date);
+    const hours = attendance?.hours_logged || 0;
+
+    return {
+      day,
+      hours: hours > 0 ? `${hours}h ${Math.round((hours % 1) * 60)}m` : "No entry",
+      isToday: date === new Date().toISOString().split("T")[0]
+    };
+  });
+
+  const hoursToday = todayAttendance?.hours_logged || 0;
+  const status = todayAttendance?.status || "not_checked_in";
 
   useEffect(() => {
     if (!studentProfile && !isLoading) {
@@ -66,7 +86,7 @@ export default function Home() {
               <MaterialCommunityIcons name="clock-outline" size={24} color="#2563eb" />
               <Text className="text-sm text-gray-600">Hours Today</Text>
             </View>
-            <Text className="text-2xl font-bold text-gray-800">8.5h</Text>
+            <Text className="text-2xl font-bold text-gray-800">{hoursToday}h</Text>
           </View>
 
           <View className="flex-1 bg-white rounded-lg p-4 shadow-md">
@@ -74,30 +94,22 @@ export default function Home() {
               <MaterialCommunityIcons name="check-circle" size={24} color="#16a34a" />
               <Text className="text-sm text-gray-600">Status</Text>
             </View>
-            <Text className="text-xl font-bold text-green-600">On Duty</Text>
+            <Text className="text-xl font-bold text-green-600">
+              {status === "checked_in" ? "On Duty" : status === "completed" ? "Completed" : "Not Checked In"}
+            </Text>
           </View>
         </View>
 
         <View className="bg-white rounded-lg p-6 shadow-md">
           <Text className="text-lg font-semibold text-gray-800 mb-4">This Week</Text>
-          <View className="gap-3">
-            <View className="flex-row justify-between items-center py-2 border-b border-gray-200">
-              <Text className="text-gray-700 font-semibold">Monday</Text>
-              <Text className="text-gray-600 text-sm">8h 30m</Text>
+          {weekData.map((item, i) => (
+            <View key={i} className="flex-row justify-between items-center py-2">
+              <Text className="text-gray-700 font-semibold">{item.day}</Text>
+              <Text className={`text-sm ${item.isToday ? 'text-indigo-600 font-semibold' : 'text-gray-600'}`}>
+                {item.hours}
+              </Text>
             </View>
-            <View className="flex-row justify-between items-center py-2 border-b border-gray-200">
-              <Text className="text-gray-700 font-semibold">Tuesday</Text>
-              <Text className="text-gray-600 text-sm">9h 00m</Text>
-            </View>
-            <View className="flex-row justify-between items-center py-2 border-b border-gray-200">
-              <Text className="text-gray-700 font-semibold">Wednesday</Text>
-              <Text className="text-gray-600 text-sm">8h 45m</Text>
-            </View>
-            <View className="flex-row justify-between items-center py-2">
-              <Text className="text-gray-700 font-semibold">Thursday</Text>
-              <Text className="text-indigo-600 font-semibold">Today</Text>
-            </View>
-          </View>
+          ))}
         </View>
 
         <View className="flex-row gap-3">
@@ -118,7 +130,7 @@ export default function Home() {
 
       <Modal
         transparent
-        visible={isLoading}
+        visible={isLoading || todayAttendanceLoading || weekAttendanceLoading}
         animationType="fade"
       >
         <View

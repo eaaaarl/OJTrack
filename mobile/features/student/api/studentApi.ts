@@ -1,6 +1,7 @@
 import { supabase } from "@/libs/supabase";
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import * as FileSystem from "expo-file-system/legacy";
+import { getWeekDates } from "../utils/getWeeksDate";
 import { createAttendancePayload } from "./interface";
 
 function base64ToArrayBuffer(base64: string) {
@@ -163,7 +164,63 @@ export const studentApi = createApi({
         }
       },
     }),
+
+    getTodayAttendance: builder.query<any, { userId: string }>({
+      queryFn: async ({ userId }) => {
+        const today = new Date().toISOString().split("T")[0];
+        const { data, error } = await supabase
+          .from("attendance")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("date", today)
+          .maybeSingle();
+
+        if (error) {
+          return {
+            error: {
+              message: error.message,
+            },
+          };
+        }
+
+        return {
+          data,
+        };
+      },
+    }),
+
+    getWeekAttendance: builder.query<any, { userId: string }>({
+      queryFn: async ({ userId }) => {
+        const weekDates = getWeekDates();
+        const startDate = weekDates[0].date;
+        const endDate = weekDates[6].date;
+
+        const { data, error } = await supabase
+          .from("attendance")
+          .select("*")
+          .eq("user_id", userId)
+          .gte("date", startDate)
+          .lte("date", endDate)
+          .order("date", { ascending: true });
+
+        if (error) {
+          return {
+            error: {
+              message: error.message,
+            },
+          };
+        }
+
+        return {
+          data,
+        };
+      },
+    }),
   }),
 });
 
-export const { useCreateAttendanceMutation } = studentApi;
+export const {
+  useCreateAttendanceMutation,
+  useGetTodayAttendanceQuery,
+  useGetWeekAttendanceQuery,
+} = studentApi;
