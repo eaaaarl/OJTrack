@@ -16,6 +16,12 @@ export default function Camera() {
   const [capturedPhoto, setCapturedPhoto] = useState<CameraCapturedPicture | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const cameraRef = useRef<CameraView>(null)
+
+  const [locationData, setLocationData] = useState({
+    address: '',
+    latitude: 0,
+    longitude: 0
+  })
   const [createAttendance] = useCreateAttendanceMutation()
 
   useEffect(() => {
@@ -58,14 +64,19 @@ export default function Camera() {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       })
-      console.log('Address', JSON.stringify(address, null, 2))
-      console.log('location', JSON.stringify(location, null, 2))
-      // Location data is available but not currently used
+
       console.log('Location data:', {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
         address: address[0].formattedAddress || ''
       })
+
+      setLocationData({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        address: address[0].formattedAddress || ''
+      })
+
     } catch (error) {
       console.log('Location error:', error)
       Alert.alert(
@@ -140,8 +151,11 @@ export default function Camera() {
 
     try {
       const res = await createAttendance({
-        photo_url: capturedPhoto.uri,  // Now we have the photo URI
-        user_id: currentUser.id
+        photo_url: capturedPhoto.uri,
+        user_id: currentUser.id,
+        latitude: locationData.latitude,
+        location: locationData.address,
+        longitude: locationData.longitude
       }).unwrap()
 
       console.log('Upload success:', res)
