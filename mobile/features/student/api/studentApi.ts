@@ -27,12 +27,26 @@ export const studentApi = createApi({
       }) => {
         try {
           const today = new Date().toISOString().split("T")[0];
-          const currentHour = new Date().getHours();
+          const currentTime = new Date().toISOString();
 
-          // Upload photo first
+          // Get today's attendance record FIRST to determine if check-in or check-out
+          const { data: existingRecordTodayAttendance } = await supabase
+            .from("attendance")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("date", today)
+            .maybeSingle();
+
+          // Determine if this is check-in or check-out
+          const isCheckIn =
+            !existingRecordTodayAttendance ||
+            !existingRecordTodayAttendance.check_in_time;
+          const folderType = isCheckIn ? "checkins" : "checkouts";
+
+          // Upload photo to appropriate folder
           const fileExtension = "jpg";
           const fileName = `${user_id}-${Date.now()}.${fileExtension}`;
-          const filePath = `checkins/${fileName}`;
+          const filePath = `${folderType}/${fileName}`;
 
           const base64 = await FileSystem.readAsStringAsync(photo_url, {
             encoding: FileSystem.EncodingType.Base64,
@@ -63,157 +77,85 @@ export const studentApi = createApi({
             .eq("date", today)
             .maybeSingle();
 
-          const currentTime = new Date().toISOString();
-
-          // MORNING SHIFT (8am - 12pm)
-          if (currentHour >= 8 && currentHour < 12) {
-            // Check if morning check-in exists
-            if (!existingRecord || !existingRecord.check_in_time) {
-              // NEW CHECK-IN (morning)
-              const { data: newRecord, error: insertError } = await supabase
-                .from("attendance")
-                .insert([
-                  {
-                    user_id,
-                    photo_url: publicData.publicUrl,
-                    check_in_time: currentTime,
-                    date: today,
-                    status: "present",
-                    location,
-                    latitude,
-                    longitude,
-                  },
-                ])
-                .select()
-                .single();
-
-              if (insertError) {
-                return { error: { message: insertError.message } };
-              }
-
-              return {
-                data: {
-                  success: true,
-                  type: "morning_check_in",
-                  message: "Morning check-in recorded",
-                  time: currentTime,
-                  attendance: newRecord,
+          // NO EXISTING RECORD - CREATE NEW CHECK-IN
+          if (!existingRecord) {
+            const { data: newRecord, error: insertError } = await supabase
+              .from("attendance")
+              .insert([
+                {
+                  user_id,
+                  check_in_photo_url: publicData.publicUrl,
+                  check_in_time: currentTime,
+                  check_in_location: location,
+                  check_in_latitude: latitude,
+                  check_in_longitude: longitude,
+                  date: today,
+                  status: "checked_in",
                 },
-              };
-            } else if (
-              existingRecord.check_in_time &&
-              !existingRecord.check_out_time
-            ) {
-              // MORNING CHECK-OUT (before lunch)
-              const checkInTime = new Date(existingRecord.check_in_time);
-              const checkOutTime = new Date(currentTime);
-              const hoursLogged =
-                (checkOutTime.getTime() - checkInTime.getTime()) /
-                (1000 * 60 * 60);
+              ])
+              .select()
+              .single();
 
-              const { data: updatedRecord, error: updateError } = await supabase
-                .from("attendance")
-                .update({
-                  check_out_time: currentTime,
-                  morning_hours: parseFloat(hoursLogged.toFixed(2)),
-                })
-                .eq("id", existingRecord.id)
-                .select()
-                .single();
-
-              if (updateError) {
-                return { error: { message: updateError.message } };
-              }
-
-              return {
-                data: {
-                  success: true,
-                  type: "morning_check_out",
-                  message: "Morning check-out recorded",
-                  hoursLogged: updatedRecord.morning_hours,
-                  attendance: updatedRecord,
-                },
-              };
+            if (insertError) {
+              return { error: { message: insertError.message } };
             }
+
+            return {
+              data: {
+                success: true,
+                type: "check_in",
+                message: "Check-in recorded",
+                time: currentTime,
+                location: location,
+                attendance: newRecord,
+              },
+            };
           }
 
-          // AFTERNOON SHIFT (1pm - 5pm)
-          if (currentHour >= 13 && currentHour < 17) {
-            // Check if afternoon check-in exists
-            if (
-              existingRecord &&
-              existingRecord.check_out_time &&
-              !existingRecord.afternoon_check_in
-            ) {
-              // AFTERNOON CHECK-IN
-              const { data: updatedRecord, error: updateError } = await supabase
-                .from("attendance")
-                .update({
-                  afternoon_check_in: currentTime,
-                })
-                .eq("id", existingRecord.id)
-                .select()
-                .single();
+          // EXISTING RECORD WITH CHECK-IN BUT NO CHECK-OUT - CREATE CHECK-OUT
+          if (existingRecord.check_in_time && !existingRecord.check_out_time) {
+            const checkInTime = new Date(existingRecord.check_in_time);
+            const checkOutTime = new Date(currentTime);
+            const hoursLogged =
+              (checkOutTime.getTime() - checkInTime.getTime()) /
+              (1000 * 60 * 60);
 
-              if (updateError) {
-                return { error: { message: updateError.message } };
-              }
+            const { data: updatedRecord, error: updateError } = await supabase
+              .from("attendance")
+              .update({
+                check_out_time: currentTime,
+                check_out_photo_url: publicData.publicUrl,
+                check_out_location: location,
+                check_out_latitude: latitude,
+                check_out_longitude: longitude,
+                hours_logged: parseFloat(hoursLogged.toFixed(2)),
+                status: "completed",
+              })
+              .eq("id", existingRecord.id)
+              .select()
+              .single();
 
-              return {
-                data: {
-                  success: true,
-                  type: "afternoon_check_in",
-                  message: "Afternoon check-in recorded",
-                  time: currentTime,
-                  attendance: updatedRecord,
-                },
-              };
-            } else if (
-              existingRecord &&
-              existingRecord.afternoon_check_in &&
-              !existingRecord.afternoon_check_out
-            ) {
-              // AFTERNOON CHECK-OUT
-              const afternoonCheckInTime = new Date(
-                existingRecord.afternoon_check_in
-              );
-              const checkOutTime = new Date(currentTime);
-              const hoursLogged =
-                (checkOutTime.getTime() - afternoonCheckInTime.getTime()) /
-                (1000 * 60 * 60);
-
-              const { data: updatedRecord, error: updateError } = await supabase
-                .from("attendance")
-                .update({
-                  afternoon_check_out: currentTime,
-                  afternoon_hours: parseFloat(hoursLogged.toFixed(2)),
-                  hours_logged:
-                    (existingRecord.morning_hours || 0) +
-                    parseFloat(hoursLogged.toFixed(2)),
-                  status: "completed",
-                })
-                .eq("id", existingRecord.id)
-                .select()
-                .single();
-
-              if (updateError) {
-                return { error: { message: updateError.message } };
-              }
-
-              return {
-                data: {
-                  success: true,
-                  type: "afternoon_check_out",
-                  message: "Afternoon check-out recorded",
-                  hoursLogged: updatedRecord.hours_logged,
-                  attendance: updatedRecord,
-                },
-              };
+            if (updateError) {
+              return { error: { message: updateError.message } };
             }
+
+            return {
+              data: {
+                success: true,
+                type: "check_out",
+                message: "Check-out recorded",
+                hoursLogged: updatedRecord.hours_logged,
+                location: location,
+                attendance: updatedRecord,
+              },
+            };
           }
 
+          // RECORD ALREADY HAS CHECK-IN AND CHECK-OUT
           return {
-            error: { message: "Check-in/check-out outside working hours" },
+            error: {
+              message: "Attendance already completed for today",
+            },
           };
         } catch (err: any) {
           console.error("Attendance error:", err);
