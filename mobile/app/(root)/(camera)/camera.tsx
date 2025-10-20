@@ -1,6 +1,7 @@
+import { useCreateAttendanceMutation } from '@/features/student/api/studentApi'
 import { useAppSelector } from '@/libs/redux/hooks'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { CameraView, useCameraPermissions } from 'expo-camera'
+import { CameraCapturedPicture, CameraView, useCameraPermissions } from 'expo-camera'
 import * as Location from 'expo-location'
 import { router } from 'expo-router'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
@@ -11,10 +12,17 @@ export default function Camera() {
   const currentUser = useAppSelector((state) => state.auth)
   const insets = useSafeAreaInsets()
   const [permission, requestPermission] = useCameraPermissions()
-  const [permissionLocation, setPermissionLocation] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [capturedPhoto, setCapturedPhoto] = useState(null)
-  const cameraRef = useRef(null)
+  const [capturedPhoto, setCapturedPhoto] = useState<CameraCapturedPicture | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const cameraRef = useRef<CameraView>(null)
+
+  const [locationData, setLocationData] = useState({
+    address: '',
+    latitude: 0,
+    longitude: 0
+  })
+  const [createAttendance] = useCreateAttendanceMutation()
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -27,19 +35,17 @@ export default function Camera() {
   const requestLocationPermission = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync()
-      setPermissionLocation(status === 'granted')
-      return status === 'granted';
+      return status === 'granted'
     } catch (error) {
-      console.log('Permission location error:', error);
-      return false;
+      console.log('Permission location error:', error)
+      return false
     }
   }
 
   const getCurrentLocation = useCallback(async () => {
-    if (!currentUser) return;
-
+    if (!currentUser) return
     try {
-      const hasPermission = await requestLocationPermission();
+      const hasPermission = await requestLocationPermission()
       if (!hasPermission) {
         Alert.alert(
           'Location Permission Required',
@@ -48,38 +54,45 @@ export default function Camera() {
             { text: 'Cancel', style: 'cancel' },
             { text: 'Open Settings', onPress: () => Location.requestForegroundPermissionsAsync() }
           ]
-        );
-        return;
+        )
+        return
       }
-
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
-      });
-
+      })
       const address = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-      });
+      })
 
-      console.log('Address', JSON.stringify(address, null, 2))
-      console.log('location', JSON.stringify(location, null, 2))
+      console.log('Location data:', {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        address: address[0].formattedAddress || ''
+      })
+
+      setLocationData({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        address: address[0].formattedAddress || ''
+      })
+
     } catch (error) {
-      console.log('Location error:', error);
+      console.log('Location error:', error)
       Alert.alert(
         'Location Error',
         'Unable to get your current location. Please try again or check your location settings.'
-      );
+      )
     }
-  }, [currentUser]);
+  }, [currentUser])
 
   useEffect(() => {
     if (currentUser) {
-      getCurrentLocation();
+      getCurrentLocation()
     }
-  }, [currentUser, getCurrentLocation]);
+  }, [currentUser, getCurrentLocation])
 
   // Camera Permission
-
   useEffect(() => {
     if (!permission?.granted) {
       requestPermission()
@@ -115,25 +128,52 @@ export default function Camera() {
   const takePicture = async () => {
     if (cameraRef.current) {
       try {
-        const photo = await cameraRef.current?.takePictureAsync({
+        const photo = await cameraRef.current.takePictureAsync({
           quality: 0.8,
-          skipProcessing: false
+          base64: false,
+          skipProcessing: false,
         })
-        setCapturedPhoto(photo)
-        console.log('picture', photo)
+        setCapturedPhoto(photo)  // Store the photo in state
       } catch (error) {
         Alert.alert('Error', 'Failed to take picture')
+        console.log('Camera error:', error)
       }
     }
   }
 
-  const handleConfirm = () => {
-    Alert.alert('Success', 'Check-in recorded successfully!', [
-      {
-        text: 'OK',
-        onPress: () => setCapturedPhoto(null)
-      }
-    ])
+  const handleConfirm = async () => {
+    if (!capturedPhoto?.uri) {
+      Alert.alert('Error', 'No photo to upload')
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const res = await createAttendance({
+        photo_url: capturedPhoto.uri,
+        user_id: currentUser.id,
+        latitude: locationData.latitude,
+        location: locationData.address,
+        longitude: locationData.longitude
+      }).unwrap()
+
+      console.log('Upload success:', res)
+      Alert.alert('Success', 'Check-in recorded successfully!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            setCapturedPhoto(null)
+            router.replace('/(root)/tabs/home')
+          }
+        }
+      ])
+    } catch (error: any) {
+      console.log('Upload error:', error)
+      Alert.alert('Error', error?.message || 'Failed to upload photo')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleRetake = () => {
@@ -156,15 +196,14 @@ export default function Camera() {
 
   const timeDisplay = formatTime(currentTime)
 
-  // Photo preview screen
+  // Photo preview
   if (capturedPhoto) {
     return (
       <View className="flex-1 bg-black">
         <Image
-          source={{ uri: (capturedPhoto as { uri: string }).uri }}
+          source={{ uri: capturedPhoto.uri }}
           style={{ flex: 1 }}
         />
-
         <View className="absolute top-0 left-0 right-0 bottom-0 flex-col justify-between p-4">
           <View style={{ marginTop: insets.top }}>
             <View className="bg-black/70 rounded-lg p-4 items-center">
@@ -172,22 +211,26 @@ export default function Camera() {
               <Text className="text-white text-lg mt-2">{timeDisplay.date}</Text>
             </View>
           </View>
-
           <View className="flex-row gap-4 justify-center mb-6">
             <TouchableOpacity
               onPress={handleRetake}
+              disabled={isLoading}
               className="bg-red-500 rounded-full p-4 flex-row items-center gap-2"
             >
               <MaterialCommunityIcons name="reload" size={24} color="white" />
               <Text className="text-white font-bold">Retake</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               onPress={handleConfirm}
-              className="bg-green-500 rounded-full p-4 flex-row items-center gap-2"
+              disabled={isLoading}
+              className={`${isLoading ? 'bg-green-400' : 'bg-green-500'} rounded-full p-4 flex-row items-center gap-2`}
             >
-              <MaterialCommunityIcons name="check" size={24} color="white" />
-              <Text className="text-white font-bold">Confirm</Text>
+              {isLoading ? (
+                <MaterialCommunityIcons name="loading" size={24} color="white" />
+              ) : (
+                <MaterialCommunityIcons name="check" size={24} color="white" />
+              )}
+              <Text className="text-white font-bold">{isLoading ? 'Uploading...' : 'Confirm'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -195,6 +238,7 @@ export default function Camera() {
     )
   }
 
+  // Camera view
   return (
     <View className="flex-1">
       <CameraView
@@ -230,14 +274,12 @@ export default function Camera() {
         <TouchableOpacity className="p-3" onPress={() => router.replace('/(root)/tabs/home')}>
           <MaterialCommunityIcons name="close" size={28} color="white" />
         </TouchableOpacity>
-
         <TouchableOpacity
           onPress={takePicture}
           className="bg-indigo-600 rounded-full p-5"
         >
           <MaterialCommunityIcons name="camera" size={32} color="white" />
         </TouchableOpacity>
-
         <TouchableOpacity className="p-3">
           <MaterialCommunityIcons name="flash-off" size={28} color="white" />
         </TouchableOpacity>
