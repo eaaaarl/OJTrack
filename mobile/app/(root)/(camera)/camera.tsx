@@ -5,7 +5,7 @@ import { CameraCapturedPicture, CameraView, useCameraPermissions } from 'expo-ca
 import * as Location from 'expo-location'
 import { router } from 'expo-router'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Alert, Image, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Alert, Image, Modal, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function Camera() {
@@ -14,6 +14,7 @@ export default function Camera() {
   const [permission, requestPermission] = useCameraPermissions()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [capturedPhoto, setCapturedPhoto] = useState<CameraCapturedPicture | null>(null)
+  const [showLoadingModal, setShowLoadingModal] = useState(false)
   const cameraRef = useRef<CameraView>(null)
 
   const [locationData, setLocationData] = useState({
@@ -21,7 +22,7 @@ export default function Camera() {
     latitude: 0,
     longitude: 0
   })
-  const [createAttendance, { isLoading }] = useCreateAttendanceMutation()
+  const [createAttendance] = useCreateAttendanceMutation()
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -132,7 +133,7 @@ export default function Camera() {
           base64: false,
           skipProcessing: false,
         })
-        setCapturedPhoto(photo)  // Store the photo in state
+        setCapturedPhoto(photo)
       } catch (error) {
         Alert.alert('Error', 'Failed to take picture')
         console.log('Camera error:', error)
@@ -146,6 +147,9 @@ export default function Camera() {
       return
     }
 
+    // Show loading modal immediately
+    setShowLoadingModal(true)
+
     try {
       const res = await createAttendance({
         photo_url: capturedPhoto.uri,
@@ -156,6 +160,10 @@ export default function Camera() {
       }).unwrap()
 
       console.log('Upload success:', res)
+
+      // Hide loading modal before showing alert
+      setShowLoadingModal(false)
+
       Alert.alert('Success', res?.message, [
         {
           text: 'OK',
@@ -167,7 +175,24 @@ export default function Camera() {
       ])
     } catch (error: any) {
       console.log('Upload error:', error)
-      Alert.alert('Error', error?.message || 'Failed to upload photo')
+
+      // Hide loading modal before showing alert
+      setShowLoadingModal(false)
+
+      Alert.alert('Error', error?.message || 'Failed to upload photo', [
+        {
+          text: 'Retry',
+          onPress: () => {
+            // Don't close the photo preview, allow retry
+          }
+        },
+        {
+          text: 'Retake',
+          onPress: () => {
+            setCapturedPhoto(null)
+          }
+        }
+      ])
     }
   }
 
@@ -209,26 +234,42 @@ export default function Camera() {
           <View className="flex-row gap-4 justify-center mb-6">
             <TouchableOpacity
               onPress={handleRetake}
-              disabled={isLoading}
-              className="bg-red-500 rounded-full p-4 flex-row items-center gap-2"
+              disabled={showLoadingModal}
+              className={`rounded-full p-4 flex-row items-center gap-2 ${showLoadingModal ? 'bg-gray-500' : 'bg-red-500'}`}
             >
               <MaterialCommunityIcons name="reload" size={24} color="white" />
               <Text className="text-white font-bold">Retake</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleConfirm}
-              disabled={isLoading}
-              className={`${isLoading ? 'bg-green-400' : 'bg-green-500'} rounded-full p-4 flex-row items-center gap-2`}
+              disabled={showLoadingModal}
+              className={`rounded-full p-4 flex-row items-center gap-2 ${showLoadingModal ? 'bg-green-400' : 'bg-green-500'}`}
             >
-              {isLoading ? (
-                <MaterialCommunityIcons name="loading" size={24} color="white" />
-              ) : (
-                <MaterialCommunityIcons name="check" size={24} color="white" />
-              )}
-              <Text className="text-white font-bold">{isLoading ? 'Uploading...' : 'Confirm'}</Text>
+              <Text className="text-white font-bold">
+                {showLoadingModal ? 'Uploading...' : 'Confirm'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Loading Modal */}
+        <Modal
+          transparent
+          visible={showLoadingModal}
+          animationType="fade"
+        >
+          <View
+            className="flex-1 justify-center items-center"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
+          >
+            <View className="bg-white p-8 rounded-2xl items-center gap-4">
+              <ActivityIndicator size="large" color="#4f46e5" />
+              <Text className="text-gray-800 font-semibold text-center">
+                Uploading your attendance...
+              </Text>
+            </View>
+          </View>
+        </Modal>
       </View>
     )
   }

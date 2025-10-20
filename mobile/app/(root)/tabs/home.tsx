@@ -51,7 +51,7 @@ export default function Home() {
             />
             <View>
               <Text className="text-xl font-semibold text-white">
-                Sign In with Camera
+                Sign In/Sign Out with Camera
               </Text>
               <Text className="text-sm text-white opacity-90">
                 Tap to capture
