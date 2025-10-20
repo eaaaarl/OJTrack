@@ -14,7 +14,6 @@ export default function Camera() {
   const [permission, requestPermission] = useCameraPermissions()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [capturedPhoto, setCapturedPhoto] = useState<CameraCapturedPicture | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const cameraRef = useRef<CameraView>(null)
 
   const [locationData, setLocationData] = useState({
@@ -22,7 +21,7 @@ export default function Camera() {
     latitude: 0,
     longitude: 0
   })
-  const [createAttendance] = useCreateAttendanceMutation()
+  const [createAttendance, { isLoading }] = useCreateAttendanceMutation()
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -147,8 +146,6 @@ export default function Camera() {
       return
     }
 
-    setIsLoading(true)
-
     try {
       const res = await createAttendance({
         photo_url: capturedPhoto.uri,
@@ -159,7 +156,7 @@ export default function Camera() {
       }).unwrap()
 
       console.log('Upload success:', res)
-      Alert.alert('Success', 'Check-in recorded successfully!', [
+      Alert.alert('Success', res?.message, [
         {
           text: 'OK',
           onPress: () => {
@@ -171,8 +168,6 @@ export default function Camera() {
     } catch (error: any) {
       console.log('Upload error:', error)
       Alert.alert('Error', error?.message || 'Failed to upload photo')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -238,7 +233,6 @@ export default function Camera() {
     )
   }
 
-  // Camera view
   return (
     <View className="flex-1">
       <CameraView
