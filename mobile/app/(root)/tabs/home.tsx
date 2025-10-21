@@ -1,6 +1,6 @@
 import { useCheckStudentProfilesQuery } from '@/features/auth/api/authApi'
 import { useGetTodayAttendanceQuery, useGetWeekAttendanceQuery } from '@/features/student/api/studentApi'
-import { getWeekDates } from '@/features/student/utils/getWeeksDate'
+import { getPhilippineWeekDates } from '@/features/student/utils/dateUtils'
 import { useAppSelector } from '@/libs/redux/hooks'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { router } from 'expo-router'
@@ -17,7 +17,7 @@ export default function Home() {
   const { data: todayAttendance, isLoading: todayAttendanceLoading } = useGetTodayAttendanceQuery({ userId: currentUser.id })
   const { data: weekAttendance, isLoading: weekAttendanceLoading } = useGetWeekAttendanceQuery({ userId: currentUser.id })
 
-  const weekDates = getWeekDates()
+  const weekDates = getPhilippineWeekDates()
 
   const weekData = weekDates.map(({ day, date }) => {
     const attendance = weekAttendance?.find(a => a.date === date);

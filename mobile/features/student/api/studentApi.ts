@@ -1,7 +1,7 @@
 import { supabase } from "@/libs/supabase";
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import * as FileSystem from "expo-file-system/legacy";
-import { getWeekDates } from "../utils/getWeeksDate";
+import { getPhilippineWeekDates } from "../utils/dateUtils";
 import { createAttendancePayload } from "./interface";
 
 function base64ToArrayBuffer(base64: string) {
@@ -191,7 +191,10 @@ export const studentApi = createApi({
 
     getWeekAttendance: builder.query<any, { userId: string }>({
       queryFn: async ({ userId }) => {
-        const weekDates = getWeekDates();
+        const weekDates = getPhilippineWeekDates();
+
+        console.log("weekdates", weekDates);
+
         const startDate = weekDates[0].date;
         const endDate = weekDates[6].date;
 
