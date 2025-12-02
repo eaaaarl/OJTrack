@@ -1,14 +1,18 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import { FormSchema } from "../components/login-form";
 import { supabase } from "@/lib/supabase";
-import { User } from "@supabase/supabase-js";
 
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: fakeBaseQuery(),
   endpoints: (builder) => ({
     signIn: builder.mutation<
-      { meta: { success: boolean; message: string } },
+      {
+        meta: { success: boolean; message: string };
+        userType: "admin" | "student" | "";
+        id: string;
+        email: string;
+      },
       FormSchema
     >({
       queryFn: async ({ email, password }) => {
@@ -55,7 +59,9 @@ export const authApi = createApi({
               success: true,
               message: "sign in successfully",
             },
-            userType: profile.user_type,
+            userType: profile.user_type!,
+            id: authData.user.id!,
+            email: authData.user.email!,
           },
         };
       },
@@ -67,9 +73,11 @@ export const authApi = createApi({
     >({
       queryFn: async () => {
         const { error } = await supabase.auth.signOut();
+
         if (error) {
           return { error: { status: "CUSTOM_ERROR", message: error.message } };
         }
+
         return {
           data: {
             meta: {

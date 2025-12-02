@@ -38,14 +38,13 @@ export function NavUser() {
 
   const { id } = useAppSelector((state) => state.auth)
   const { data: profile } = useGetUserQuery({ userId: id })
-  console.log('profile', profile)
-
 
   const dispatch = useAppDispatch()
   const [signOut, { isLoading: isSigningOut }] = useSignOutMutation()
+
   const handleSignOut = async () => {
-    await signOut().unwrap()
     dispatch(clearUser())
+    await signOut().unwrap()
   }
 
   return (

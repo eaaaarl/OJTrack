@@ -1,6 +1,6 @@
 'use client'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
-import { setUser, clearUser } from '@/lib/redux/state/authSlice'
+import { clearUser } from '@/lib/redux/state/authSlice'
 import { supabase } from '@/lib/supabase'
 import React, { ReactNode, useEffect, useState } from 'react'
 import SplashScreen from './SplashScreen'
@@ -12,72 +12,38 @@ interface AuthProviderProps {
 export default function AuthProvider({ children }: AuthProviderProps) {
   const dispatch = useAppDispatch()
   const [loading, setLoading] = useState(true)
-  const userType = useAppSelector((state) => state.auth.userType)
+  const { id, userType } = useAppSelector((state) => state.auth)
 
   useEffect(() => {
-    const initialSession = async () => {
+    const checkSession = async () => {
       try {
         const { data } = await supabase.auth.getSession()
 
-        if (data.session?.user && data.session?.user.email && data.session?.user.id) {
-          if (!userType) {
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
-              .select('user_type')
-              .eq('id', data.session.user.id)
-              .single()
-
-            if (!profileError && profile?.user_type === 'admin') {
-              dispatch(setUser({
-                email: data.session.user.email,
-                id: data.session.user.id,
-                userType: profile.user_type
-              }))
-            } else {
-              await supabase.auth.signOut()
-              dispatch(clearUser())
-            }
-          } else {
-            dispatch(setUser({
-              email: data.session.user.email,
-              id: data.session.user.id,
-              userType: userType
-            }))
-          }
-        } else {
+        // If no session but Redux has user, clear Redux
+        if (!data.session && id) {
           dispatch(clearUser())
         }
+
+        // If session exists but no Redux state, user refreshed - sign them out
+        // They need to login again to set Redux state properly
+        if (data.session && !id) {
+          await supabase.auth.signOut()
+        }
       } catch (error) {
-        console.error('user session error', error)
+        console.error('session check error', error)
         dispatch(clearUser())
       } finally {
         setLoading(false)
       }
     }
 
-    initialSession()
+    checkSession()
 
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT') {
           dispatch(clearUser())
-        } else if (session?.user && session.user.email && session.user.id) {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('user_type')
-            .eq('id', session.user.id)
-            .single()
-
-          if (!profileError && profile?.user_type === 'admin') {
-            dispatch(setUser({
-              email: session.user.email,
-              id: session.user.id,
-              userType: profile.user_type
-            }))
-          } else {
-            await supabase.auth.signOut()
-            dispatch(clearUser())
-          }
         }
       }
     )
@@ -85,7 +51,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [dispatch, userType])
+  }, [dispatch, id])
 
   if (loading) {
     return <SplashScreen />
