@@ -17,8 +17,10 @@ import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useSignInMutation } from "../api/authApi"
 import { AlertCircle, Loader2 } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useAppDispatch } from "@/lib/redux/hooks"
+import { setUser } from "@/lib/redux/state/authSlice"
 
 export const formSchema = z.object({
   email: z.email({ message: 'Invalid email address' }).min(2, { message: "Email must be at least 2 characters" }),
@@ -40,12 +42,21 @@ export function LoginForm({
     },
   })
 
+  const dispatch = useAppDispatch()
   const [signIn, { isLoading }] = useSignInMutation()
 
   const onSubmit = async (payload: FormSchema) => {
     try {
-      setError('') // Clear any previous errors
-      await signIn(payload).unwrap()
+      setError('')
+      const res = await signIn(payload).unwrap()
+
+      const userType = res.userType === 'admin' ? 'admin' : 'student';
+
+      dispatch(setUser({
+        email: res.email,
+        id: res.id,
+        userType: userType
+      }))
     } catch (error) {
       console.log('errors', error)
       setError('An error occurred during login')

@@ -17,7 +17,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
     }
   }, [id, router])
 
-  // Only render if user is authenticated
   if (id) {
     return <>{children}</>
   }
