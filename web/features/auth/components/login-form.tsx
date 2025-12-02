@@ -15,13 +15,15 @@ import Image from "next/image"
 import * as z from "zod"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useSignInMutation } from "../api/authApi"
+import { Loader2 } from "lucide-react"
 
 export const formSchema = z.object({
   email: z.email({ error: 'Invalid email address' }).min(2, { message: "Email must be at least 2 characters" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
 });
 
-type FormSchema = z.infer<typeof formSchema>;
+export type FormSchema = z.infer<typeof formSchema>;
 
 
 export function LoginForm({
@@ -37,8 +39,16 @@ export function LoginForm({
     },
   })
 
-  const onSubmit = (payload: FormSchema) => {
-    console.log('payload', payload)
+  const [signIn, { isLoading }] = useSignInMutation()
+
+  const onSubmit = async (payload: FormSchema) => {
+    try {
+      const response = await signIn(payload).unwrap()
+      console.log('response', response)
+    } catch (error) {
+      console.log('errors', error)
+
+    }
   }
 
   return (
@@ -90,7 +100,7 @@ export function LoginForm({
                 )}
               />
               <Field>
-                <Button type="submit">Login</Button>
+                <Button type="submit" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : 'Login'}</Button>
               </Field>
               {/* <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 Or continue with
