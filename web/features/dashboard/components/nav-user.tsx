@@ -29,6 +29,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useSignOutMutation } from "@/features/auth/api/authApi"
+import { useRouter } from "next/navigation"
+import { useAppDispatch } from "@/lib/redux/hooks"
+import { clearUser } from "@/lib/redux/state/authSlice"
 
 export function NavUser({
   user,
@@ -40,6 +44,13 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+
+  const dispatch = useAppDispatch()
+  const [signOut, { isLoading: isSigningOut }] = useSignOutMutation()
+  const handleSignOut = async () => {
+    await signOut().unwrap()
+    dispatch(clearUser())
+  }
 
   return (
     <SidebarMenu>
@@ -102,7 +113,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem disabled={isSigningOut} onClick={handleSignOut}>
               <LogOut />
               Log out
             </DropdownMenuItem>

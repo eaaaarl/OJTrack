@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
   useEffect(() => {
     if (id) {
-      router.replace('/')
+      router.replace('/dashboard')
     }
   }, [id, router])
 

@@ -1,6 +1,6 @@
 import Image from 'next/image'
-
 export default function SplashScreen() {
+
   return (
     <div className="w-full h-screen flex flex-col items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-6">
