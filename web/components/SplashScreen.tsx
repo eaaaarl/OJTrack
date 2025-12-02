@@ -11,7 +11,6 @@ export default function SplashScreen() {
           height={120}
           priority
         />
-        <h1 className="text-3xl font-bold text-gray-800">SplashScreen</h1>
         <p className="text-gray-600">Loading...</p>
         <div className="mt-4">
           <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>

@@ -19,13 +19,10 @@ import {
 import { TeamSwitcher } from "./team-switcher"
 import { NavProjects } from "./nav-projects"
 import { NavUser } from "./nav-user"
+import { useGetUserQuery } from "@/features/auth/api/authApi"
+import { useAppSelector } from "@/lib/redux/hooks"
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   teams: [
     {
       name: "OJTrack",
@@ -53,6 +50,7 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -62,7 +60,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
