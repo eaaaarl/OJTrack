@@ -17,7 +17,7 @@ import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useSignInMutation } from "../api/authApi"
 import { AlertCircle, Loader2 } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAppDispatch } from "@/lib/redux/hooks"
 import { setUser } from "@/lib/redux/state/authSlice"
@@ -49,7 +49,6 @@ export function LoginForm({
     try {
       setError('')
       const res = await signIn(payload).unwrap()
-      console.log('res', JSON.stringify(res, null, 2))
 
       const userType = res.userType === 'admin' ? 'admin' : 'student';
 

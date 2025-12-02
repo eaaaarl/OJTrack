@@ -90,7 +90,16 @@ export const authApi = createApi({
     }),
 
     getUser: builder.query<
-      { meta: { success: boolean; message: string }; profile: any },
+      {
+        meta: { success: boolean; message: string };
+        profile: {
+          id: string;
+          name: string;
+          email: string;
+          create_at: string;
+          userType: "admin" | "student";
+        };
+      },
       { userId: string }
     >({
       queryFn: async ({ userId }) => {
@@ -117,9 +126,5 @@ export const authApi = createApi({
     }),
   }),
 });
-export const {
-  useSignInMutation,
-  useSignOutMutation,
-  useGetUserQuery,
-  useLazyGetUserQuery,
-} = authApi;
+export const { useSignInMutation, useSignOutMutation, useGetUserQuery } =
+  authApi;
