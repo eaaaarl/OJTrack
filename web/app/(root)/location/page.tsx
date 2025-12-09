@@ -1,119 +1,76 @@
 'use client'
 
 import { useState } from 'react'
-import { MapPin, Clock, Calendar, Search, Filter, User, Building2, CheckCircle, AlertTriangle } from 'lucide-react'
+import { MapPin, Clock, Search, Building2, CheckCircle, AlertTriangle, User, Calendar, Navigation } from 'lucide-react'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/features/dashboard/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from '@/components/ui/breadcrumb'
+import { useGetStudentAttendanceQuery } from '@/features/location/api/locationApi'
+import { Input } from '@/components/ui/input'
+import Image from 'next/image'
+import { GEOAPIFY } from '@/constant/geoapify'
+import { format } from "date-fns"
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { Attendance } from '@/features/location/api/interface'
+import { useAppSelector } from '@/lib/redux/hooks'
 
 export default function LocationPage() {
-  const [selectedDate, setSelectedDate] = useState('2024-11-26')
+  const currentUserId = useAppSelector((state) => state.auth.id)
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeSearchQuery, setActiveSearchQuery] = useState('')
   const [filterType, setFilterType] = useState('all')
+  const [selectedCheckIn, setSelectedCheckIn] = useState<Attendance | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  const [checkIns] = useState([
-    {
-      id: 1,
-      studentName: "Juan Dela Cruz",
-      studentId: "2021-00123",
-      company: "Tech Solutions Inc.",
-      address: "Ayala Avenue, Makati City",
-      latitude: 14.5547,
-      longitude: 121.0244,
-      checkInTime: "08:45 AM",
-      checkOutTime: "05:30 PM",
-      status: "Valid",
-      imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Juan",
-      date: "2024-11-26"
-    },
-    {
-      id: 2,
-      studentName: "Maria Santos",
-      studentId: "2021-00145",
-      company: "Digital Corp",
-      address: "BGC, Taguig City",
-      latitude: 14.5514,
-      longitude: 121.0471,
-      checkInTime: "08:30 AM",
-      checkOutTime: "05:45 PM",
-      status: "Valid",
-      imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria",
-      date: "2024-11-26"
-    },
-    {
-      id: 3,
-      studentName: "Pedro Reyes",
-      studentId: "2021-00167",
-      company: "Web Innovations",
-      address: "Ortigas Center, Pasig City",
-      latitude: 14.5832,
-      longitude: 121.0610,
-      checkInTime: "09:15 AM",
-      checkOutTime: null,
-      status: "Late",
-      imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Pedro",
-      date: "2024-11-26"
-    },
-    {
-      id: 4,
-      studentName: "Ana Garcia",
-      studentId: "2021-00189",
-      company: "Tech Solutions Inc.",
-      address: "Makati Avenue, Makati City",
-      latitude: 14.5648,
-      longitude: 121.0245,
-      checkInTime: "08:50 AM",
-      checkOutTime: "05:15 PM",
-      status: "Valid",
-      imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ana",
-      date: "2024-11-26"
-    },
-    {
-      id: 5,
-      studentName: "Carlos Lopez",
-      studentId: "2021-00201",
-      company: "Cloud Systems",
-      address: "Mandaluyong City",
-      latitude: 14.5794,
-      longitude: 121.0359,
-      checkInTime: "10:30 AM",
-      checkOutTime: null,
-      status: "Outside Range",
-      imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos",
-      date: "2024-11-26"
-    },
-  ])
+  const { data: studentAttendanceData } = useGetStudentAttendanceQuery({ currentUserId: currentUserId, searchQuery: activeSearchQuery || undefined })
 
-  const getStaticMapUrl = (lat, lon) => {
-    const apiKey = 'YOUR_GEOAPIFY_API_KEY'
-    return `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=400&height=300&center=lonlat:${lon},${lat}&zoom=15&marker=lonlat:${lon},${lat};color:%23ff0000;size:medium&apiKey=${apiKey}`
+  const handleSearch = () => {
+    setActiveSearchQuery(searchQuery)
   }
 
-  const filteredCheckIns = checkIns.filter(checkIn => {
-    const matchesSearch = checkIn.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      checkIn.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      checkIn.company.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesFilter = filterType === 'all' || checkIn.status.toLowerCase().replace(' ', '') === filterType.toLowerCase()
-    return matchesSearch && matchesFilter
-  })
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  }
 
-  const getStatusBadge = (status) => {
-    const styles = {
-      Valid: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-      Late: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-      'Outside Range': 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+  const getStaticMapUrl = (lat: number, lon: number) => {
+    return `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=400&height=300&center=lonlat:${lon},${lat}&zoom=15&marker=lonlat:${lon},${lat};color:%23ff0000;size:medium&apiKey=${GEOAPIFY.KEY}`
+  }
+
+  const getLargeStaticMapUrl = (lat: number, lon: number) => {
+    return `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=800&height=400&center=lonlat:${lon},${lat}&zoom=16&marker=lonlat:${lon},${lat};color:%23ff0000;size:large&apiKey=${GEOAPIFY.KEY}`
+  }
+
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      checked_in: 'bg-blue-100 text-blue-700',
+      checked_out: 'bg-green-100 text-green-700',
+      Valid: 'bg-green-100 text-green-700',
+      Late: 'bg-yellow-100 text-yellow-700',
+      'Outside Range': 'bg-red-100 text-red-700'
     }
     return styles[status] || styles.Valid
   }
 
-  const stats = {
-    total: checkIns.length,
-    valid: checkIns.filter(c => c.status === 'Valid').length,
-    late: checkIns.filter(c => c.status === 'Late').length,
-    issues: checkIns.filter(c => c.status === 'Outside Range').length
+  const handleViewDetails = (checkIn: Attendance) => {
+    setSelectedCheckIn(checkIn)
+    setIsDialogOpen(true)
   }
 
+  const totalCheckIn = studentAttendanceData?.attendance.filter((c) => c.check_in_time).length
+  const totalCheckout = studentAttendanceData?.attendance.filter((co) => co.check_out_time).length
+
+  console.log(JSON.stringify(studentAttendanceData, null, 2))
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -132,52 +89,53 @@ export default function LocationPage() {
           </div>
         </header>
         <div className="p-6 space-y-6">
-          {/* Header */}
           <div>
             <h1 className="text-3xl font-bold">Location Monitoring</h1>
             <p className="text-muted-foreground mt-1">Track student check-ins and locations</p>
           </div>
 
-          {/* Search and Filter Bar */}
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search by name, student ID, or company..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg bg-background"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="relative flex-1 flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search by name, student ID, or company..."
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg bg-background"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyUp={handleKeyPress}
+                />
+              </div>
+              <Button
+                onClick={handleSearch}
+                className="px-6"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </Button>
             </div>
             <div className="flex gap-2">
-              <input
-                type="date"
-                className="px-4 py-2 border rounded-lg bg-background"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
               <select
                 className="px-4 py-2 border rounded-lg bg-background"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >
                 <option value="all">All Status</option>
-                <option value="valid">Valid</option>
+                <option value="check">Valid</option>
                 <option value="late">Late</option>
                 <option value="outsiderange">Outside Range</option>
               </select>
             </div>
           </div>
 
-          {/* Stats Summary */}
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="bg-card border rounded-lg p-4">
               <div className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="text-sm text-muted-foreground">Total Check-ins</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-2xl font-bold">{totalCheckIn}</p>
                 </div>
               </div>
             </div>
@@ -185,117 +143,274 @@ export default function LocationPage() {
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Valid</p>
-                  <p className="text-2xl font-bold">{stats.valid}</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-card border rounded-lg p-4">
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Late</p>
-                  <p className="text-2xl font-bold">{stats.late}</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-card border rounded-lg p-4">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Issues</p>
-                  <p className="text-2xl font-bold">{stats.issues}</p>
+                  <p className="text-sm text-muted-foreground">Total Check-outs</p>
+                  <p className="text-2xl font-bold">{totalCheckout}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Check-ins Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredCheckIns.map((checkIn) => (
-              <div key={checkIn.id} className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Student Image */}
-                <div className="relative h-40 bg-gradient-to-br from-blue-500 to-purple-600">
-                  <img
-                    src={checkIn.imageUrl}
-                    alt={checkIn.studentName}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-3 right-3">
-                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusBadge(checkIn.status)}`}>
-                      {checkIn.status}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Student Info */}
-                <div className="p-4 space-y-3">
-                  <div>
-                    <h3 className="font-semibold text-lg">{checkIn.studentName}</h3>
-                    <p className="text-sm text-muted-foreground">{checkIn.studentId}</p>
-                  </div>
-
-                  <div className="flex items-start gap-2 text-sm">
-                    <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <span className="text-muted-foreground">{checkIn.company}</span>
-                  </div>
-
-                  <div className="flex items-start gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <span className="text-muted-foreground">{checkIn.address}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm pt-2 border-t">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4 text-green-600" />
-                      <span className="font-medium">In: {checkIn.checkInTime}</span>
-                    </div>
-                    {checkIn.checkOutTime && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4 text-red-600" />
-                        <span className="font-medium">Out: {checkIn.checkOutTime}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Map Preview - using placeholder since we need API key */}
-                  <div className="relative h-32 bg-muted rounded-lg overflow-hidden">
-                    <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-950">
-                      <div className="text-center">
-                        <MapPin className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                        <p className="text-xs text-muted-foreground">
-                          {checkIn.latitude.toFixed(4)}, {checkIn.longitude.toFixed(4)}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Map preview (Add Geoapify API key)
-                        </p>
-                      </div>
-                    </div>
-                    {/* Uncomment when you add your Geoapify API key */}
-                    {/* <img 
-                  src={getStaticMapUrl(checkIn.latitude, checkIn.longitude)}
-                  alt="Location map"
-                  className="w-full h-full object-cover"
-                /> */}
-                  </div>
-
-                  <button className="w-full py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
-                    View Details
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* No Results */}
-          {filteredCheckIns.length === 0 && (
+          {studentAttendanceData?.attendance.length === 0 ? (
             <div className="text-center py-12">
-              <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No check-ins found matching your criteria</p>
+              <p className="text-muted-foreground">No attendance records found matching your criteria.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {studentAttendanceData?.attendance.map((checkIn) => {
+                const photoUrl = checkIn?.check_in_photo_url
+                return (
+                  <div key={checkIn.id} className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="relative h-48 bg-linear-to-br from-blue-500 to-purple-600">
+                      {photoUrl ? (
+                        <Image
+                          src={photoUrl}
+                          alt={checkIn.profiles.name ?? ''}
+                          className="w-full h-full object-cover"
+                          width={500}
+                          height={500}
+                        />
+                      ) : null}
+                      <div className="absolute top-3 right-3">
+                        <Badge className={getStatusBadge(checkIn.status)}>
+                          {checkIn.status.replace('_', ' ').toUpperCase()}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">{checkIn.profiles.name}</h3>
+                        <p className="text-sm text-muted-foreground">{checkIn.profiles.student_profiles[0].student_id}</p>
+                      </div>
+
+                      <div className="flex items-start gap-2 text-sm">
+                        <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <span className="text-muted-foreground">{checkIn.profiles.student_profiles[0].company}</span>
+                      </div>
+
+                      <div className="flex items-start gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <span className="text-muted-foreground">{checkIn.profiles.student_profiles[0].address}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm pt-2 border-t">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4 text-green-600" />
+                          <span className="font-medium text-xs">
+                            {format(new Date(checkIn?.check_in_time as string), "hh:mm a")}
+                          </span>
+                        </div>
+                        {checkIn.check_out_time && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4 text-red-600" />
+                            <span className="font-medium text-xs">
+                              {format(new Date(checkIn?.check_out_time as string), "hh:mm a")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="relative h-32 bg-muted rounded-lg overflow-hidden">
+                        <Image
+                          src={getStaticMapUrl(checkIn.check_in_latitude!, checkIn.check_in_longitude!)}
+                          alt="Location map"
+                          className="w-full h-full object-cover"
+                          width={300}
+                          height={300}
+                        />
+                      </div>
+
+                      <Button
+                        onClick={() => handleViewDetails(checkIn)}
+                        className="w-full"
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
       </SidebarInset>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Attendance Details</DialogTitle>
+            <DialogDescription>
+              Complete check-in and check-out information
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedCheckIn && (
+            <div className="space-y-6">
+              <div className="bg-muted/50 rounded-lg p-4">
+                <div className="flex items-start gap-4">
+                  <div className="relative w-20 h-20 rounded-full overflow-hidden bg-linear-to-br from-blue-500 to-purple-600">
+
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className='text-4xl text-white'>{selectedCheckIn.profiles.name.charAt(0) ?? (<User className="h-10 w-10 text-white" />)}</span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold">{selectedCheckIn.profiles.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedCheckIn.profiles.student_profiles[0].student_id}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge className={getStatusBadge(selectedCheckIn.status)}>
+                        {selectedCheckIn.status.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {selectedCheckIn.profiles.email}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Company Info */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Building2 className="h-4 w-4" />
+                    <span className="font-medium">Company</span>
+                  </div>
+                  <p className="text-base font-medium">{selectedCheckIn.profiles.student_profiles[0].company}</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <User className="h-4 w-4" />
+                    <span className="font-medium">Supervisor</span>
+                  </div>
+                  <p className="text-base font-medium">{selectedCheckIn.profiles.student_profiles[0].supervisor}</p>
+                </div>
+              </div>
+
+              {/* Time Info */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="border rounded-lg p-4 bg-green-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="h-5 w-5 text-green-600" />
+                    <span className="font-semibold text-green-900">Check In</span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Date & Time</p>
+                    <p className="text-lg font-bold text-green-900">
+                      {format(new Date(selectedCheckIn.check_in_time as string), "MMM dd, yyyy • hh:mm a")}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedCheckIn.check_out_time ? (
+                  <div className="border rounded-lg p-4 bg-blue-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="h-5 w-5 text-blue-600" />
+                      <span className="font-semibold text-blue-900">Check Out</span>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Date & Time</p>
+                      <p className="text-lg font-bold text-blue-900">
+                        {format(new Date(selectedCheckIn.check_out_time as string), "MMM dd, yyyy • hh:mm a")}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="h-5 w-5 text-gray-600" />
+                      <span className="font-semibold text-gray-900">Check Out</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Not checked out yet</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Check-in Location</h4>
+
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="font-medium">Address</p>
+                      <p className="text-sm text-muted-foreground">{selectedCheckIn.check_in_location || 'Location not available'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <Navigation className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="font-medium">Coordinates</p>
+                      <p className="text-sm text-muted-foreground font-mono">
+                        {selectedCheckIn.check_in_latitude?.toFixed(6)}, {selectedCheckIn.check_in_longitude?.toFixed(6)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative h-64 bg-muted rounded-lg overflow-hidden border">
+                  <Image
+                    src={getLargeStaticMapUrl(selectedCheckIn.check_in_latitude!, selectedCheckIn.check_in_longitude!)}
+                    alt="Check-in location map"
+                    className="w-full h-full object-cover"
+                    width={800}
+                    height={400}
+                  />
+                </div>
+              </div>
+
+              {selectedCheckIn.check_in_photo_url && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg">Photo Evidence</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Check-in Photo</p>
+                      <div className="relative h-64 bg-muted rounded-lg overflow-hidden border">
+                        <Image
+                          src={selectedCheckIn.check_in_photo_url}
+                          alt="Check-in photo"
+                          className="w-full h-full object-cover"
+                          width={400}
+                          height={400}
+                        />
+                      </div>
+                    </div>
+                    {selectedCheckIn.check_out_photo_url && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Check-out Photo</p>
+                        <div className="relative h-64 bg-muted rounded-lg overflow-hidden border">
+                          <Image
+                            src={selectedCheckIn.check_out_photo_url}
+                            alt="Check-out photo"
+                            className="w-full h-full object-cover"
+                            width={400}
+                            height={400}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedCheckIn.hours_logged && (
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Hours Logged</p>
+                      <p className="text-2xl font-bold">{selectedCheckIn.hours_logged} hours</p>
+                    </div>
+                    <Calendar className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   )
 }

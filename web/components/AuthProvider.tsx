@@ -26,9 +26,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
         // If session exists but no Redux state, user refreshed - sign them out
         // They need to login again to set Redux state properly
-        if (data.session && !id) {
+        /* if (data.session && !id) {
           await supabase.auth.signOut()
-        }
+        } */
       } catch (error) {
         console.error('session check error', error)
         dispatch(clearUser())

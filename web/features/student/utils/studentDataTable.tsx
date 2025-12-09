@@ -36,7 +36,7 @@ export const studentColumn = () => {
     // Company + Supervisor
     columnHelper.accessor((row) => row.students[0]?.company, {
       id: "company",
-      header: () => <span className="font-semibold">Placement</span>,
+      header: () => <span className="font-semibold">Comapany Assign</span>,
       cell: (info) => {
         const profile = info.row.original;
         const company = info.getValue() || "Not assigned";
