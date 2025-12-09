@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -14,30 +13,17 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/features/dashboard/components/app-sidebar"
-import { Users, Building2, Clock, AlertTriangle } from 'lucide-react'
+import { Users, Clock } from 'lucide-react'
+import { useGetStudentsQuery } from '@/features/dashboard/api/dashboardApi'
+import { useAppSelector } from '@/lib/redux/hooks'
 
 export default function DashboardPage() {
-  const [stats] = useState({
-    totalStudents: 45,
-    activeStudents: 38,
-    companies: 12,
-    pendingApprovals: 7
-  })
+  const user = useAppSelector((state) => state.auth)
 
-  const [recentStudents] = useState([
-    { id: 1, name: "Juan Dela Cruz", company: "Tech Solutions Inc.", hours: "320/500", progress: 64, status: "Active" },
-    { id: 2, name: "Maria Santos", company: "Digital Corp", hours: "450/500", progress: 90, status: "Active" },
-    { id: 3, name: "Pedro Reyes", company: "Web Innovations", hours: "180/500", progress: 36, status: "Active" },
-    { id: 4, name: "Ana Garcia", company: "Tech Solutions Inc.", hours: "95/500", progress: 19, status: "Active" },
-    { id: 5, name: "Carlos Lopez", company: "Cloud Systems", hours: "0/500", progress: 0, status: "Pending" },
-  ])
+  const { data: students } = useGetStudentsQuery({ currentUserId: user.id })
 
-  const [alerts] = useState([
-    { student: "Miguel Torres", issue: "Low attendance rate (75%)", type: "warning" },
-    { student: "Sofia Ramos", issue: "Hours not logged for 5 days", type: "alert" },
-    { student: "Luis Hernandez", issue: "Pending evaluation from supervisor", type: "info" },
-  ])
-
+  const totalStudents = students?.students.length
+  const activeStudents = students?.students.filter((ss) => ss.status === 'active').length
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -57,14 +43,12 @@ export default function DashboardPage() {
         </header>
 
         <div className="flex flex-1 flex-col gap-6 p-6">
-          {/* Header */}
           <div>
             <h1 className="text-3xl font-bold">OJT Tracking Dashboard</h1>
             <p className="text-muted-foreground mt-1">Monitor and manage all OJT students</p>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="bg-card border rounded-lg p-6">
               <div className="flex items-center gap-3">
                 <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-full">
@@ -72,7 +56,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Students</p>
-                  <p className="text-3xl font-bold">{stats.totalStudents}</p>
+                  <p className="text-3xl font-bold">{totalStudents}</p>
                 </div>
               </div>
             </div>
@@ -84,12 +68,12 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Active Students</p>
-                  <p className="text-3xl font-bold">{stats.activeStudents}</p>
+                  <p className="text-3xl font-bold">{activeStudents}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-card border rounded-lg p-6">
+            {/* <div className="bg-card border rounded-lg p-6">
               <div className="flex items-center gap-3">
                 <div className="bg-purple-100 dark:bg-purple-900 p-3 rounded-full">
                   <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-300" />
@@ -99,11 +83,10 @@ export default function DashboardPage() {
                   <p className="text-3xl font-bold">{stats.companies}</p>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Recent Students */}
+          {/*  <div className="grid gap-6 md:grid-cols-2">
             <div className="bg-card border rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4">Student Progress Overview</h2>
               <div className="space-y-4">
@@ -135,7 +118,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Alerts & Notifications */}
             <div className="bg-card border rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4">Alerts & Notifications</h2>
               <div className="space-y-3">
@@ -150,10 +132,10 @@ export default function DashboardPage() {
                       <p className="text-sm text-muted-foreground">{alert.issue}</p>
                     </div>
                   </div>
-                ))}
+                ))} 
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </SidebarInset>
     </SidebarProvider>
