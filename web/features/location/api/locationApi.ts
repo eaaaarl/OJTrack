@@ -2,20 +2,27 @@ import { supabase } from "@/lib/supabase";
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import { AttendanceResponse } from "./interface";
 
+export type FilterStatus = "ALL" | "checked_in" | "checked_out";
+
 export const locationApi = createApi({
   reducerPath: "locationApi",
   baseQuery: fakeBaseQuery(),
   endpoints: (builder) => ({
     getStudentAttendance: builder.query<
       AttendanceResponse,
-      { currentUserId?: string; searchQuery?: string }
+      {
+        currentUserId?: string;
+        searchQuery?: string;
+        statusFilter?: FilterStatus;
+      }
     >({
-      queryFn: async ({ searchQuery, currentUserId }) => {
+      queryFn: async ({ searchQuery, currentUserId, statusFilter = "ALL" }) => {
         const { data: idData, error: idError } = await supabase.rpc(
           "search_attendance_ids",
           {
             p_search_query: searchQuery || "",
             p_current_user_id: currentUserId,
+            p_status_filter: statusFilter,
           }
         );
 

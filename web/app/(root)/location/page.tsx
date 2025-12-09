@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { MapPin, Clock, Search, Building2, CheckCircle, AlertTriangle, User, Calendar, Navigation } from 'lucide-react'
+import { MapPin, Clock, Search, Building2, CheckCircle, User, Calendar, Navigation } from 'lucide-react'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/features/dashboard/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from '@/components/ui/breadcrumb'
-import { useGetStudentAttendanceQuery } from '@/features/location/api/locationApi'
+import { FilterStatus, useGetStudentAttendanceQuery } from '@/features/location/api/locationApi'
 import { Input } from '@/components/ui/input'
 import Image from 'next/image'
 import { GEOAPIFY } from '@/constant/geoapify'
@@ -27,11 +27,15 @@ export default function LocationPage() {
   const currentUserId = useAppSelector((state) => state.auth.id)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeSearchQuery, setActiveSearchQuery] = useState('')
-  const [filterType, setFilterType] = useState('all')
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('ALL');
   const [selectedCheckIn, setSelectedCheckIn] = useState<Attendance | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  const { data: studentAttendanceData } = useGetStudentAttendanceQuery({ currentUserId: currentUserId, searchQuery: activeSearchQuery || undefined })
+  const { data: studentAttendanceData } = useGetStudentAttendanceQuery({
+    currentUserId: currentUserId,
+    searchQuery: activeSearchQuery || undefined,
+    statusFilter: filterStatus
+  })
 
   const handleSearch = () => {
     setActiveSearchQuery(searchQuery)
@@ -70,7 +74,6 @@ export default function LocationPage() {
   const totalCheckIn = studentAttendanceData?.attendance.filter((c) => c.check_in_time).length
   const totalCheckout = studentAttendanceData?.attendance.filter((co) => co.check_out_time).length
 
-  console.log(JSON.stringify(studentAttendanceData, null, 2))
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -118,13 +121,12 @@ export default function LocationPage() {
             <div className="flex gap-2">
               <select
                 className="px-4 py-2 border rounded-lg bg-background"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as FilterStatus)}
               >
-                <option value="all">All Status</option>
-                <option value="check">Valid</option>
-                <option value="late">Late</option>
-                <option value="outsiderange">Outside Range</option>
+                <option value="ALL">All Statuses</option>
+                <option value="checked_in">Checked In</option>
+                <option value="checked_out">Checked Out</option>
               </select>
             </div>
           </div>
