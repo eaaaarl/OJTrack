@@ -57,13 +57,13 @@ export const studentColumn = () => {
     }),
 
     // Duration + Status
-    columnHelper.accessor((row) => row.students[0]?.duration, {
-      id: "duration",
+    columnHelper.accessor("status", {  // Access status directly
+      id: "status",
       header: () => <span className="font-semibold">Status</span>,
       cell: (info) => {
         const profile = info.row.original;
-        const duration = info.getValue();
-        const status = profile.status;
+        const duration = profile.students[0]?.duration;
+        const status = info.getValue(); // Now this gets the status
         return (
           <div className="space-y-2">
             <div className="text-sm text-gray-700">

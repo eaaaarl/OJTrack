@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Filter, MoreVertical, Eye, Edit, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Search, Filter, MoreVertical, Eye, Edit, CheckCircle, XCircle, Clock, User2 } from 'lucide-react'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/features/dashboard/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
@@ -10,144 +10,35 @@ import { useGetStudentsQuery } from '@/features/student/api/studentApi'
 import { useAppSelector } from '@/lib/redux/hooks'
 import { skipToken } from '@reduxjs/toolkit/query'
 import { studentColumn } from '@/features/student/utils/studentDataTable'
-import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import { flexRender, getCoreRowModel, getFilteredRowModel, useReactTable } from '@tanstack/react-table'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
 export default function StudentPage() {
   const currentUserId = useAppSelector((state) => state.auth.id)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
 
   const { data: studentsData } = useGetStudentsQuery(
     currentUserId ? { currentUserId } : skipToken
   );
-
-  const [students] = useState([
-    {
-      id: 1,
-      name: "Juan Dela Cruz",
-      email: "juan.delacruz@email.com",
-      studentId: "2021-00123",
-      company: "Tech Solutions Inc.",
-      department: "Software Development",
-      supervisor: "Mr. Robert Chen",
-      hoursCompleted: 320,
-      hoursRequired: 500,
-      attendance: 95,
-      status: "Active",
-      startDate: "Sep 1, 2024",
-      endDate: "Dec 15, 2024"
-    },
-    {
-      id: 2,
-      name: "Maria Santos",
-      email: "maria.santos@email.com",
-      studentId: "2021-00145",
-      company: "Digital Corp",
-      department: "Web Development",
-      supervisor: "Ms. Sarah Johnson",
-      hoursCompleted: 450,
-      hoursRequired: 500,
-      attendance: 98,
-      status: "Active",
-      startDate: "Aug 15, 2024",
-      endDate: "Dec 1, 2024"
-    },
-    {
-      id: 3,
-      name: "Pedro Reyes",
-      email: "pedro.reyes@email.com",
-      studentId: "2021-00167",
-      company: "Web Innovations",
-      department: "UI/UX Design",
-      supervisor: "Ms. Lisa Wong",
-      hoursCompleted: 180,
-      hoursRequired: 500,
-      attendance: 88,
-      status: "Active",
-      startDate: "Sep 10, 2024",
-      endDate: "Dec 20, 2024"
-    },
-    {
-      id: 4,
-      name: "Ana Garcia",
-      email: "ana.garcia@email.com",
-      studentId: "2021-00189",
-      company: "Tech Solutions Inc.",
-      department: "Data Analytics",
-      supervisor: "Mr. James Lee",
-      hoursCompleted: 95,
-      hoursRequired: 500,
-      attendance: 92,
-      status: "Active",
-      startDate: "Oct 1, 2024",
-      endDate: "Jan 15, 2025"
-    },
-    {
-      id: 5,
-      name: "Carlos Lopez",
-      email: "carlos.lopez@email.com",
-      studentId: "2021-00201",
-      company: "Cloud Systems",
-      department: "IT Support",
-      supervisor: "Mr. Michael Brown",
-      hoursCompleted: 0,
-      hoursRequired: 500,
-      attendance: 0,
-      status: "Pending",
-      startDate: "Nov 20, 2024",
-      endDate: "Feb 28, 2025"
-    },
-    {
-      id: 6,
-      name: "Sofia Ramos",
-      email: "sofia.ramos@email.com",
-      studentId: "2021-00234",
-      company: "Mobile Tech Inc.",
-      department: "Mobile Development",
-      supervisor: "Ms. Emily Davis",
-      hoursCompleted: 500,
-      hoursRequired: 500,
-      attendance: 100,
-      status: "Completed",
-      startDate: "Jul 1, 2024",
-      endDate: "Nov 15, 2024"
-    },
-  ])
-
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.company.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesFilter = filterStatus === 'all' || student.status.toLowerCase() === filterStatus.toLowerCase()
-    return matchesSearch && matchesFilter
-  })
-
-  const getStatusBadge = (status) => {
-    const styles = {
-      Active: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-      Pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-      Completed: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-      Inactive: 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300'
-    }
-    return styles[status] || styles.Active
-  }
-
-  const getProgressColor = (progress) => {
-    if (progress >= 90) return 'bg-green-600'
-    if (progress >= 60) return 'bg-blue-600'
-    if (progress >= 30) return 'bg-yellow-600'
-    return 'bg-red-600'
-  }
-
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: studentsData?.profiles || [],
     columns: studentColumn(),
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    state: {
+      globalFilter: searchQuery
+    },
+    onGlobalFilterChange: setSearchQuery,
   });
 
+
+  const studentsActive = studentsData?.profiles.filter((p) => p.status === 'active').length
+  const studentInactive = studentsData?.profiles.filter((p) => p.status === 'inactive').length
+  const studentSuspended = studentsData?.profiles.filter((p) => p.status === 'suspended').length
 
   return (
     <SidebarProvider>
@@ -184,20 +75,22 @@ export default function StudentPage() {
               />
             </div>
             <div className="flex gap-2">
-              <select
-                className="px-4 py-2 border rounded-lg bg-background"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+              <Select
+                value={(table.getColumn("status")?.getFilterValue() as string) ?? "all"}
+                onValueChange={(value) => {
+                  table.getColumn("status")?.setFilterValue(value === "all" ? "" : value);
+                }}
               >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-              </select>
-              <button className="px-4 py-2 border rounded-lg bg-background hover:bg-muted flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                <span className="hidden sm:inline">More Filters</span>
-              </button>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -207,7 +100,7 @@ export default function StudentPage() {
                 <CheckCircle className="h-5 w-5 text-green-600" />
                 <div>
                   <p className="text-sm text-muted-foreground">Active</p>
-                  <p className="text-2xl font-bold">{students.filter(s => s.status === 'Active').length}</p>
+                  <p className="text-2xl font-bold">{studentsActive}</p>
                 </div>
               </div>
             </div>
@@ -215,17 +108,8 @@ export default function StudentPage() {
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-yellow-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Pending</p>
-                  <p className="text-2xl font-bold">{students.filter(s => s.status === 'Pending').length}</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-card border rounded-lg p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Completed</p>
-                  <p className="text-2xl font-bold">{students.filter(s => s.status === 'Completed').length}</p>
+                  <p className="text-sm text-muted-foreground">Inactive</p>
+                  <p className="text-2xl font-bold">{studentInactive}</p>
                 </div>
               </div>
             </div>
@@ -233,8 +117,17 @@ export default function StudentPage() {
               <div className="flex items-center gap-2">
                 <XCircle className="h-5 w-5 text-gray-600" />
                 <div>
+                  <p className="text-sm text-muted-foreground">Suspended</p>
+                  <p className="text-2xl font-bold">{studentSuspended}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-card border rounded-lg p-4">
+              <div className="flex items-center gap-2">
+                <User2 className="h-5 w-5 text-gray-600" />
+                <div>
                   <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold">{students.length}</p>
+                  <p className="text-2xl font-bold">{studentsData?.profiles.length}</p>
                 </div>
               </div>
             </div>
@@ -257,25 +150,58 @@ export default function StudentPage() {
                   ))}
                 </TableHeader>
                 <TableBody>
-                  {table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id}>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id} className="hover:bg-gray-50">
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell className='p-6' key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={table.getAllColumns().length} className="h-24 text-center">
+                        {(searchQuery) ? "No users found matching your search." : "No users found."}
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
           </div>
 
-          {filteredStudents.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No students found matching your criteria</p>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>
+                Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                  table.getFilteredRowModel().rows.length
+                )}{' '}
+                of {table.getFilteredRowModel().rows.length} users
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
