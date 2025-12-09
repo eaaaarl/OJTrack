@@ -10,7 +10,7 @@ import { FilterStatus, useGetStudentAttendanceQuery } from '@/features/location/
 import { Input } from '@/components/ui/input'
 import Image from 'next/image'
 import { GEOAPIFY } from '@/constant/geoapify'
-import { format } from "date-fns"
+import { format, isToday } from "date-fns"
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -196,20 +196,35 @@ export default function LocationPage() {
                       </div>
 
                       <div className="flex items-center justify-between text-sm pt-2 border-t">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4 text-green-600" />
-                          <span className="font-medium text-xs">
-                            {format(new Date(checkIn?.check_in_time as string), "hh:mm a")}
-                          </span>
-                        </div>
-                        {checkIn.check_out_time && (
+                        {/* LEFT SIDE — Times */}
+                        <div className="flex items-center gap-3">
                           <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4 text-red-600" />
+                            <Clock className="h-4 w-4 text-green-600" />
                             <span className="font-medium text-xs">
-                              {format(new Date(checkIn?.check_out_time as string), "hh:mm a")}
+                              {format(new Date(checkIn.check_in_time as string), "hh:mm a")}
                             </span>
                           </div>
-                        )}
+
+                          {checkIn.check_out_time && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4 text-red-600" />
+                              <span className="font-medium text-xs">
+                                {format(new Date(checkIn.check_out_time as string), "hh:mm a")}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-right text-xs font-semibold text-gray-600">
+                          <div>
+                            {isToday(new Date(checkIn.check_in_time as string))
+                              ? "Today"
+                              : format(new Date(checkIn.check_in_time as string), "EEEE")}
+                          </div>
+                          <div className="text-[10px] text-gray-500">
+                            {format(new Date(checkIn.check_in_time as string), "MMM dd, yyyy")}
+                          </div>
+                        </div>
                       </div>
 
                       <div className="relative h-32 bg-muted rounded-lg overflow-hidden">
