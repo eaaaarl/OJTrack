@@ -10,7 +10,7 @@ import { useGetStudentsQuery } from '@/features/student/api/studentApi'
 import { useAppSelector } from '@/lib/redux/hooks'
 import { skipToken } from '@reduxjs/toolkit/query'
 import { studentColumn } from '@/features/student/utils/studentDataTable'
-import { flexRender, getCoreRowModel, getFilteredRowModel, useReactTable } from '@tanstack/react-table'
+import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -33,6 +33,12 @@ export default function StudentPage() {
       globalFilter: searchQuery
     },
     onGlobalFilterChange: setSearchQuery,
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 5
+      }
+    }
   });
 
 
