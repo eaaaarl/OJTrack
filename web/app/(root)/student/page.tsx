@@ -6,10 +6,21 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { AppSidebar } from '@/features/dashboard/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from '@/components/ui/breadcrumb'
+import { useGetStudentsQuery } from '@/features/student/api/studentApi'
+import { useAppSelector } from '@/lib/redux/hooks'
+import { skipToken } from '@reduxjs/toolkit/query'
+import { studentColumn } from '@/features/student/utils/studentDataTable'
+import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export default function StudentPage() {
+  const currentUserId = useAppSelector((state) => state.auth.id)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+
+  const { data: studentsData } = useGetStudentsQuery(
+    currentUserId ? { currentUserId } : skipToken
+  );
 
   const [students] = useState([
     {
@@ -129,6 +140,15 @@ export default function StudentPage() {
     return 'bg-red-600'
   }
 
+
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const table = useReactTable({
+    data: studentsData?.profiles || [],
+    columns: studentColumn(),
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -147,13 +167,11 @@ export default function StudentPage() {
           </div>
         </header>
         <div className="p-6 space-y-6">
-          {/* Header */}
           <div>
             <h1 className="text-3xl font-bold">Student Monitoring</h1>
             <p className="text-muted-foreground mt-1">View and manage all OJT students</p>
           </div>
 
-          {/* Search and Filter Bar */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -183,7 +201,6 @@ export default function StudentPage() {
             </div>
           </div>
 
-          {/* Stats Summary */}
           <div className="grid gap-4 md:grid-cols-4">
             <div className="bg-card border rounded-lg p-4">
               <div className="flex items-center gap-2">
@@ -223,90 +240,37 @@ export default function StudentPage() {
             </div>
           </div>
 
-          {/* Students Table */}
           <div className="bg-card border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/50 border-b">
-                  <tr>
-                    <th className="text-left p-4 font-semibold">Student</th>
-                    <th className="text-left p-4 font-semibold">Company</th>
-                    <th className="text-left p-4 font-semibold">Hours Progress</th>
-                    <th className="text-left p-4 font-semibold">Attendance</th>
-                    <th className="text-left p-4 font-semibold">Status</th>
-                    <th className="text-left p-4 font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map((student) => {
-                    const progress = (student.hoursCompleted / student.hoursRequired * 100)
-                    return (
-                      <tr key={student.id} className="border-b hover:bg-muted/30 transition-colors">
-                        <td className="p-4">
-                          <div>
-                            <p className="font-medium">{student.name}</p>
-                            <p className="text-sm text-muted-foreground">{student.studentId}</p>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div>
-                            <p className="font-medium text-sm">{student.company}</p>
-                            <p className="text-xs text-muted-foreground">{student.department}</p>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-sm">
-                              <span>{student.hoursCompleted}/{student.hoursRequired} hrs</span>
-                              <span className="text-muted-foreground">{progress.toFixed(0)}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                              <div
-                                className={`${getProgressColor(progress)} h-2 rounded-full transition-all`}
-                                style={{ width: `${progress}%` }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{student.attendance}%</span>
-                            {student.attendance >= 95 ? (
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                            ) : student.attendance >= 85 ? (
-                              <Clock className="h-4 w-4 text-yellow-600" />
-                            ) : (
-                              <XCircle className="h-4 w-4 text-red-600" />
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusBadge(student.status)}`}>
-                            {student.status}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <button className="p-2 hover:bg-muted rounded-lg transition-colors" title="View Details">
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button className="p-2 hover:bg-muted rounded-lg transition-colors" title="Edit">
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button className="p-2 hover:bg-muted rounded-lg transition-colors" title="More">
-                              <MoreVertical className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((hg) => (
+                    <TableRow key={hg.id}>
+                      {hg.headers.map((hd) => {
+                        return (
+                          <TableHead key={hd.id}>
+                            {hd.isPlaceholder ? null : flexRender(hd.column.columnDef.header, hd.getContext())}
+                          </TableHead>
+                        )
+                      })}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </div>
 
-          {/* No Results */}
           {filteredStudents.length === 0 && (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No students found matching your criteria</p>
