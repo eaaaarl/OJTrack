@@ -1,21 +1,29 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Filter, MoreVertical, Eye, Edit, CheckCircle, XCircle, Clock, User2 } from 'lucide-react'
+import { Search, CheckCircle, XCircle, Clock, User2 } from 'lucide-react'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/features/dashboard/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from '@/components/ui/breadcrumb'
-import { useGetStudentsQuery } from '@/features/student/api/studentApi'
-import { useAppSelector } from '@/lib/redux/hooks'
+import { useDeleteStudentMutation, useGetStudentsQuery, useRestoreStudentMutation, useUpdateStudentMutation } from '@/features/student/api/studentApi'
+import { useAppSelector, useAppDispatch } from '@/lib/redux/hooks'
 import { skipToken } from '@reduxjs/toolkit/query'
 import { studentColumn } from '@/features/student/utils/studentDataTable'
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Profile } from '@/features/student/api/interface'
+import StudentViewDialog from '@/features/student/components/StudentViewDialog'
+import StudentEditDialog, { StudentEditFormData } from '@/features/student/components/StudentEditDialog'
+import { locationApi } from '@/features/location/api/locationApi'
+import StudentDeleteDialog from '@/features/student/components/StudentDeleteDialog'
+import { toast } from 'sonner'
+import StudentRestoreDialog from '@/features/student/components/StudentRestoreDialog'
 
 export default function StudentPage() {
+  const dispatch = useAppDispatch()
   const currentUserId = useAppSelector((state) => state.auth.id)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -23,10 +31,124 @@ export default function StudentPage() {
     currentUserId ? { currentUserId } : skipToken
   );
 
+  const [viewDialogState, setViewDialogState] = useState(false)
+  const [profileToView, setProfileToView] = useState<Profile | null>(null)
+
+  const [editDialogState, setEditDialogState] = useState(false)
+  const [profileToEdit, setProfileToEdit] = useState<Profile | null>(null)
+
+  const [deleteDialogState, setDeleteDialogState] = useState(false)
+  const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null)
+
+  const [restoreDialogState, setRestoreDialogState] = useState(false)
+  const [profileToRestore, setProfileToRestore] = useState<Profile | null>(null)
+
+  // Handler for Dialog
+  const ViewDialog = (data: Profile) => {
+    setProfileToView(data)
+    setViewDialogState(true)
+  }
+  const EditDialog = (data: Profile) => {
+    setEditDialogState(true)
+    setProfileToEdit(data)
+  }
+  const DeleteDialog = (data: Profile) => {
+    setProfileToDelete(data)
+    setDeleteDialogState(true)
+  }
+  const RestoreDialog = (data: Profile) => {
+    setProfileToRestore(data)
+    setRestoreDialogState(true)
+  }
+
+  // RTK QUERY MUTATION
+  const [updateStudent, { isLoading }] = useUpdateStudentMutation()
+  const [deleteStudent, { isLoading: deleteStudentLoading }] = useDeleteStudentMutation()
+  const [restoreStudent, { isLoading: restoreStudentLoading }] = useRestoreStudentMutation()
+  // Handler For Mutation EDIT
+  const handleSubmitUpdateStudent = async (formData: StudentEditFormData, profileId: string, studentProfileId: string) => {
+    try {
+      await updateStudent({
+        profileId,
+        studentProfileId,
+        profileData: {
+          email: formData.email,
+          mobileNo: formData.mobileNo,
+          name: formData.name,
+          status: formData.status
+        },
+        studentData: {
+          address: formData.address,
+          company: formData.company,
+          duration: formData.duration,
+          student_id: formData.student_id,
+          supervisor: formData.supervisor
+        }
+      }).unwrap()
+
+      setEditDialogState(false);
+
+      dispatch(locationApi.util.invalidateTags(['studentAttendance']))
+      toast.success('Student updated')
+    } catch (error) {
+      console.error('Failed to update student:', error);
+    }
+  }
+  // Hander for Mutation DELETE
+  const handleConfirmDelete = async (
+    profileId: string,
+    studentProfileId: string,
+    studentAttendanceIds: string[]
+  ) => {
+    try {
+      await deleteStudent({
+        profileId,
+        studentProfileId,
+        studentAttendanceIds
+      }).unwrap()
+
+      setDeleteDialogState(false)
+
+      dispatch(locationApi.util.invalidateTags(['studentAttendance']))
+
+      toast.success('Student deleted. Data will be permanently removed after 30 days.')
+    } catch (error) {
+      console.error('Failed to delete student:', error)
+      // Optional: Show error message
+      toast.error('Failed to delete student')
+    }
+  }
+  // Handler for Mutation RESTORE 
+  const handleConfirmRestore = async (
+    profileId: string,
+    studentProfileId: string,
+    attendanceIds: string[]
+  ) => {
+    try {
+      await restoreStudent({
+        profileId,
+        studentProfileId,
+        attendanceIds
+      }).unwrap()
+
+      setRestoreDialogState(false)
+      dispatch(locationApi.util.invalidateTags(['studentAttendance']))
+      toast.success('Student restored.')
+    } catch (error) {
+      console.error('Failed to restore student:', error)
+      toast.error('Failed to restore student')
+    }
+  }
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: studentsData?.profiles || [],
-    columns: studentColumn(),
+    columns: studentColumn({
+      onView: ViewDialog,
+      onEdit: EditDialog,
+      onDelete: DeleteDialog,
+      onRestore: RestoreDialog
+    }),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     state: {
@@ -209,6 +331,37 @@ export default function StudentPage() {
             </div>
           </div>
         </div>
+
+        <StudentViewDialog
+          open={viewDialogState}
+          onOpenChange={setViewDialogState}
+          profile={profileToView}
+        />
+
+        <StudentEditDialog
+          open={editDialogState}
+          onOpenChange={setEditDialogState}
+          profile={profileToEdit}
+          isLoading={isLoading}
+          onSubmit={handleSubmitUpdateStudent}
+        />
+
+        <StudentDeleteDialog
+          open={deleteDialogState}
+          onOpenChange={setDeleteDialogState}
+          profile={profileToDelete}
+          isLoading={deleteStudentLoading}
+          onConfirm={handleConfirmDelete}
+        />
+
+
+        <StudentRestoreDialog
+          open={restoreDialogState}
+          onOpenChange={setRestoreDialogState}
+          profile={profileToRestore}
+          isLoading={restoreStudentLoading}
+          onConfirm={handleConfirmRestore}
+        />
       </SidebarInset>
     </SidebarProvider>
   )

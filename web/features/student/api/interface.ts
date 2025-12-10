@@ -12,6 +12,10 @@ export interface Profile {
   user_type: string;
   status: string;
   students: StudentProfile[];
+  attendances?: {
+    id: string;
+  }[];
+  deleted_at: string;
 }
 
 export interface StudentProfile {

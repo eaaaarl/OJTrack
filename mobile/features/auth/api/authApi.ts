@@ -11,7 +11,7 @@ export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: fakeBaseQuery(),
   endpoints: (builder) => ({
-    signUp: builder.mutation<any, signUpPayload>({
+    signUp: builder.mutation<{ user: any[] }, signUpPayload>({
       queryFn: async ({ email, mobileNo, name, password }) => {
         try {
           const { data: authData, error: authError } =
@@ -58,7 +58,7 @@ export const authApi = createApi({
       },
     }),
 
-    signIn: builder.mutation<any, signInPayload>({
+    signIn: builder.mutation<{ user: any }, signInPayload>({
       queryFn: async ({ email, password }) => {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -81,7 +81,7 @@ export const authApi = createApi({
       },
     }),
 
-    signOut: builder.mutation<any, void>({
+    signOut: builder.mutation<{ status: boolean }, void>({
       queryFn: async () => {
         await supabase.auth.signOut();
         return {
