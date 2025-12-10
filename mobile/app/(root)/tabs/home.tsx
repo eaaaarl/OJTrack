@@ -1,4 +1,5 @@
 import { useCheckStudentProfilesQuery } from '@/features/auth/api/authApi'
+import { Attendance } from '@/features/student/api/interface'
 import { useGetTodayAttendanceQuery, useGetWeekAttendanceQuery } from '@/features/student/api/studentApi'
 import { getPhilippineWeekDates } from '@/features/student/utils/dateUtils'
 import { useAppSelector } from '@/libs/redux/hooks'
@@ -19,14 +20,14 @@ export default function Home() {
 
   const weekDates = getPhilippineWeekDates()
 
-  const weekData = weekDates.map(({ day, date }) => {
-    const attendance = weekAttendance?.find(a => a.date === date);
+  const weekData = weekDates.map(({ day, date, isToday }) => {
+    const attendance = weekAttendance?.find((a: Attendance) => a.date === date);
     const hours = attendance?.hours_logged || 0;
 
     return {
       day,
       hours: hours > 0 ? `${hours}h ${Math.round((hours % 1) * 60)}m` : "No entry",
-      isToday: date === new Date().toISOString().split("T")[0]
+      isToday
     };
   });
 
@@ -57,28 +58,31 @@ export default function Home() {
           <Text className="text-sm text-gray-500 mt-1">On-The-Job Training Program</Text>
         </View>
 
-        <View className="gap-3">
-          <Text className="text-lg font-semibold text-gray-800">Daily Check-In</Text>
-          <TouchableOpacity
-            onPress={() => { router.replace('/(root)/(camera)/camera') }}
-            className={`py-12 rounded-lg flex-row items-center justify-center gap-3 bg-indigo-600
+        {status === 'completed' ? undefined : (
+          <View className="gap-3">
+            <Text className="text-lg font-semibold text-gray-800">Daily Check-In</Text>
+            <TouchableOpacity
+              onPress={() => { router.replace('/(root)/(camera)/camera') }}
+              className={`py-12 rounded-lg flex-row items-center justify-center gap-3 bg-indigo-600
               shadow-lg active:opacity-80`}
-          >
-            <MaterialCommunityIcons
-              name={'camera'}
-              size={48}
-              color="white"
-            />
-            <View>
-              <Text className="text-xl font-semibold text-white">
-                Sign In/Sign Out with Camera
-              </Text>
-              <Text className="text-sm text-white opacity-90">
-                Tap to capture
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+            >
+              <MaterialCommunityIcons
+                name={'camera'}
+                size={48}
+                color="white"
+              />
+              <View>
+                <Text className="text-xl font-semibold text-white">
+                  Sign In/Sign Out with Camera
+                </Text>
+                <Text className="text-sm text-white opacity-90">
+                  Tap to capture
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
 
         <View className="flex-row gap-4">
           <View className="flex-1 bg-white rounded-lg p-4 shadow-md">

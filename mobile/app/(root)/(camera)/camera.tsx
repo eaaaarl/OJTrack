@@ -65,12 +65,6 @@ export default function Camera() {
         longitude: location.coords.longitude,
       })
 
-      console.log('Location data:', {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        address: address[0].formattedAddress || ''
-      })
-
       setLocationData({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
@@ -132,6 +126,7 @@ export default function Camera() {
           quality: 0.8,
           base64: false,
           skipProcessing: false,
+          exif: true
         })
         setCapturedPhoto(photo)
       } catch (error) {
@@ -158,8 +153,6 @@ export default function Camera() {
         location: locationData.address,
         longitude: locationData.longitude
       }).unwrap()
-
-      console.log('Upload success:', res)
 
       // Hide loading modal before showing alert
       setShowLoadingModal(false)
@@ -231,7 +224,7 @@ export default function Camera() {
               <Text className="text-white text-lg mt-2">{timeDisplay.date}</Text>
             </View>
           </View>
-          <View className="flex-row gap-4 justify-center mb-6">
+          <View className="flex-row gap-4 justify-center mb-6" style={{ marginBottom: insets.bottom }}>
             <TouchableOpacity
               onPress={handleRetake}
               disabled={showLoadingModal}

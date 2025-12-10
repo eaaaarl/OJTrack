@@ -2,7 +2,11 @@ import { supabase } from "@/libs/supabase";
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import * as FileSystem from "expo-file-system/legacy";
 import { getPhilippineWeekDates } from "../utils/dateUtils";
-import { createAttendancePayload } from "./interface";
+import {
+  Attendance,
+  AttendanceResponse,
+  createAttendancePayload,
+} from "./interface";
 
 function base64ToArrayBuffer(base64: string) {
   const binaryString = global.atob(base64);
@@ -17,8 +21,12 @@ function base64ToArrayBuffer(base64: string) {
 export const studentApi = createApi({
   reducerPath: "studentApi",
   baseQuery: fakeBaseQuery(),
+  tagTypes: ["todayAttendance", "weekAttendance"],
   endpoints: (builder) => ({
-    createAttendance: builder.mutation<any, createAttendancePayload>({
+    createAttendance: builder.mutation<
+      AttendanceResponse,
+      createAttendancePayload
+    >({
       queryFn: async ({
         photo_url,
         user_id,
@@ -163,9 +171,10 @@ export const studentApi = createApi({
           return { error: { message: err.message } };
         }
       },
+      invalidatesTags: ["todayAttendance", "weekAttendance"],
     }),
 
-    getTodayAttendance: builder.query<any, { userId: string }>({
+    getTodayAttendance: builder.query<Attendance | null, { userId: string }>({
       queryFn: async ({ userId }) => {
         const today = new Date().toISOString().split("T")[0];
         const { data, error } = await supabase
@@ -187,13 +196,12 @@ export const studentApi = createApi({
           data,
         };
       },
+      providesTags: ["todayAttendance"],
     }),
 
-    getWeekAttendance: builder.query<any, { userId: string }>({
+    getWeekAttendance: builder.query<Attendance[], { userId: string }>({
       queryFn: async ({ userId }) => {
         const weekDates = getPhilippineWeekDates();
-
-        console.log("weekdates", weekDates);
 
         const startDate = weekDates[0].date;
         const endDate = weekDates[6].date;
@@ -218,6 +226,7 @@ export const studentApi = createApi({
           data,
         };
       },
+      providesTags: ["weekAttendance"],
     }),
   }),
 });
