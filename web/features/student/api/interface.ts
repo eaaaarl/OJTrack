@@ -12,6 +12,9 @@ export interface Profile {
   user_type: string;
   status: string;
   students: StudentProfile[];
+  attendances?: {
+    id: string;
+  }[];
 }
 
 export interface StudentProfile {

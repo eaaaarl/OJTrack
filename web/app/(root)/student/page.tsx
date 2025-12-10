@@ -6,7 +6,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { AppSidebar } from '@/features/dashboard/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from '@/components/ui/breadcrumb'
-import { useGetStudentsQuery, useUpdateStudentMutation } from '@/features/student/api/studentApi'
+import { useDeleteStudentMutation, useGetStudentsQuery, useUpdateStudentMutation } from '@/features/student/api/studentApi'
 import { useAppSelector, useAppDispatch } from '@/lib/redux/hooks'
 import { skipToken } from '@reduxjs/toolkit/query'
 import { studentColumn } from '@/features/student/utils/studentDataTable'
@@ -18,6 +18,8 @@ import { Profile } from '@/features/student/api/interface'
 import StudentViewDialog from '@/features/student/components/StudentViewDialog'
 import StudentEditDialog, { StudentEditFormData } from '@/features/student/components/StudentEditDialog'
 import { locationApi } from '@/features/location/api/locationApi'
+import StudentDeleteDialog from '@/features/student/components/StudentDeleteDialog'
+import { toast } from 'sonner'
 
 export default function StudentPage() {
   const dispatch = useAppDispatch()
@@ -28,11 +30,16 @@ export default function StudentPage() {
     currentUserId ? { currentUserId } : skipToken
   );
 
+  console.log('studentsData', JSON.stringify(studentsData, null, 2))
+
   const [viewDialogState, setViewDialogState] = useState(false)
   const [profileToView, setProfileToView] = useState<Profile | null>(null)
 
   const [editDialogState, setEditDialogState] = useState(false)
   const [profileToEdit, setProfileToEdit] = useState<Profile | null>(null)
+
+  const [deleteDialogState, setDeleteDialogState] = useState(false)
+  const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null)
 
   // Handler for Dialog
   const ViewDialog = (data: Profile) => {
@@ -43,9 +50,15 @@ export default function StudentPage() {
     setEditDialogState(true)
     setProfileToEdit(data)
   }
+  const DeleteDialog = (data: Profile) => {
+    setProfileToDelete(data)
+    setDeleteDialogState(true)
+  }
 
   // RTK QUERY MUTATION
   const [updateStudent, { isLoading }] = useUpdateStudentMutation()
+  const [deleteStudent, { isLoading: deleteStudentLoading }] = useDeleteStudentMutation()
+
   // Handler For Mutation EDIT
   const handleSubmitUpdateStudent = async (formData: StudentEditFormData, profileId: string, studentProfileId: string) => {
     try {
@@ -69,11 +82,34 @@ export default function StudentPage() {
 
       setEditDialogState(false);
 
-      // Invalidate location API cache to refresh student data
       dispatch(locationApi.util.invalidateTags(['studentAttendance']))
-
+      toast.success('Student updated')
     } catch (error) {
       console.error('Failed to update student:', error);
+    }
+  }
+  // Hander for Mutation DELETE
+  const handleConfirmDelete = async (
+    profileId: string,
+    studentProfileId: string,
+    studentAttendanceIds: string[]
+  ) => {
+    try {
+      await deleteStudent({
+        profileId,
+        studentProfileId,
+        studentAttendanceIds
+      }).unwrap()
+
+      setDeleteDialogState(false)
+
+      dispatch(locationApi.util.invalidateTags(['studentAttendance']))
+
+      toast.success('Student deleted. Data will be permanently removed after 30 days.')
+    } catch (error) {
+      console.error('Failed to delete student:', error)
+      // Optional: Show error message
+      toast.error('Failed to delete student')
     }
   }
 
@@ -82,7 +118,8 @@ export default function StudentPage() {
     data: studentsData?.profiles || [],
     columns: studentColumn({
       onView: ViewDialog,
-      onEdit: EditDialog
+      onEdit: EditDialog,
+      onDelete: DeleteDialog
     }),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -279,6 +316,14 @@ export default function StudentPage() {
           profile={profileToEdit}
           isLoading={isLoading}
           onSubmit={handleSubmitUpdateStudent}
+        />
+
+        <StudentDeleteDialog
+          open={deleteDialogState}
+          onOpenChange={setDeleteDialogState}
+          profile={profileToDelete}
+          isLoading={deleteStudentLoading}
+          onConfirm={handleConfirmDelete}
         />
       </SidebarInset>
     </SidebarProvider>

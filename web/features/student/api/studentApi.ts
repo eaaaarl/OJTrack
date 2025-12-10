@@ -11,7 +11,7 @@ export const studentApi = createApi({
       queryFn: async ({ currentUserId }) => {
         const { data, error } = await supabase
           .from("profiles")
-          .select(`*,students:student_profiles(*)`)
+          .select(`*,students:student_profiles(*),attendances:attendance(id)`)
           .neq("id", currentUserId);
 
         if (error) {
@@ -103,7 +103,96 @@ export const studentApi = createApi({
       },
       invalidatesTags: ["Students"],
     }),
+
+    deleteStudent: builder.mutation<
+      { meta: { success: boolean; message: string } },
+      {
+        profileId: string;
+        studentProfileId: string;
+        studentAttendanceIds: string[];
+      }
+    >({
+      queryFn: async ({
+        profileId,
+        studentAttendanceIds,
+        studentProfileId,
+      }) => {
+        try {
+          const now = new Date().toISOString();
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({
+              status: "deleted",
+              deleted_at: now,
+            })
+            .eq("id", profileId);
+
+          if (profileError) {
+            return {
+              error: {
+                message: `Failed to delete profile: ${profileError.message}`,
+              },
+            };
+          }
+
+          const { error: studentError } = await supabase
+            .from("student_profiles")
+            .update({
+              status: "deleted",
+              deleted_at: now,
+            })
+            .eq("id", studentProfileId);
+
+          if (studentError) {
+            return {
+              error: {
+                message: `Failed to delete student profile: ${studentError.message}`,
+              },
+            };
+          }
+
+          if (studentAttendanceIds.length > 0) {
+            const { error: attendanceError } = await supabase
+              .from("attendance")
+              .update({
+                status: "deleted",
+                deleted_at: now,
+              })
+              .in("id", studentAttendanceIds)
+              .is("deleted_at", null);
+            if (attendanceError) {
+              return {
+                error: {
+                  message: `Failed to delete attendance: ${attendanceError.message}`,
+                },
+              };
+            }
+          }
+
+          return {
+            data: {
+              meta: {
+                success: true,
+                message: "Student deleted successfully",
+              },
+            },
+          };
+        } catch (err) {
+          return {
+            error: {
+              message:
+                err instanceof Error ? err.message : "Failed to delete student",
+            },
+          };
+        }
+      },
+      invalidatesTags: ["Students"],
+    }),
   }),
 });
 
-export const { useGetStudentsQuery, useUpdateStudentMutation } = studentApi;
+export const {
+  useGetStudentsQuery,
+  useUpdateStudentMutation,
+  useDeleteStudentMutation,
+} = studentApi;

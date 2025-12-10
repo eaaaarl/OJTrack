@@ -17,9 +17,10 @@ const columnHelper = createColumnHelper<Profile>();
 interface studentColumnProps {
   onView: (data: Profile) => void;
   onEdit: (data: Profile) => void;
+  onDelete: (data: Profile) => void;
 }
 
-export const studentColumn = ({ onView, onEdit }: studentColumnProps) => {
+export const studentColumn = ({ onView, onEdit, onDelete }: studentColumnProps) => {
   return [
     // Student Info (Name + ID + Contact)
     columnHelper.accessor("name", {
@@ -128,7 +129,7 @@ export const studentColumn = ({ onView, onEdit }: studentColumnProps) => {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600 cursor-pointer"
-                onClick={() => console.log("Delete", profile.id)}
+                onClick={() => onDelete(profile)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Student

@@ -26,7 +26,8 @@ export const dashboardApi = createApi({
         const { data, error } = await supabase
           .from("profiles")
           .select("*")
-          .neq("id", currentUserId);
+          .neq("id", currentUserId)
+          .is("deleted_at", null);
 
         if (error) {
           return {
