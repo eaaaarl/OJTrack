@@ -30,18 +30,36 @@ function getStaticMapUrl(lat: number, lon: number) {
 
 export function AttendanceCard({ checkIn, onViewDetails }: AttendanceCardProps) {
   const photoUrl = checkIn?.check_in_photo_url
+  const checkOutPhotoUrl = checkIn?.check_out_photo_url
 
   return (
     <div className="bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative h-48 bg-linear-to-br from-blue-500 to-purple-600">
-        {photoUrl && (
-          <Image
-            src={photoUrl}
-            alt={checkIn.profiles.name ?? ''}
-            className="w-full h-full object-cover"
-            width={500}
-            height={500}
-          />
+        {(photoUrl || checkOutPhotoUrl) && (
+          <div className="flex h-full">
+            {photoUrl && (
+              <div className="flex-1 relative">
+                <Image
+                  src={photoUrl}
+                  alt={`${checkIn.profiles.name ?? ''} - Check In`}
+                  className="w-full h-full object-cover"
+                  width={500}
+                  height={500}
+                />
+              </div>
+            )}
+            {checkOutPhotoUrl && (
+              <div className="flex-1 relative">
+                <Image
+                  src={checkOutPhotoUrl}
+                  alt={`${checkIn.profiles.name ?? ''} - Check Out`}
+                  className="w-full h-full object-cover"
+                  width={500}
+                  height={500}
+                />
+              </div>
+            )}
+          </div>
         )}
         <div className="absolute top-3 right-3">
           <Badge className={getStatusBadge(checkIn.status)}>
@@ -97,15 +115,32 @@ export function AttendanceCard({ checkIn, onViewDetails }: AttendanceCardProps) 
           </div>
         </div>
 
-        <div className="relative h-32 bg-muted rounded-lg overflow-hidden">
-          <Image
-            src={getStaticMapUrl(checkIn.check_in_latitude!, checkIn.check_in_longitude!)}
-            alt="Location map"
-            className="w-full h-full object-cover"
-            width={300}
-            height={300}
-          />
-        </div>
+        {(checkIn.check_in_latitude && checkIn.check_in_longitude) || (checkIn.check_out_latitude && checkIn.check_out_longitude) ? (
+          <div className="flex gap-2 h-32">
+            {checkIn.check_in_latitude && checkIn.check_in_longitude && (
+              <div className="relative flex-1 bg-muted rounded-lg overflow-hidden">
+                <Image
+                  src={getStaticMapUrl(checkIn.check_in_latitude, checkIn.check_in_longitude)}
+                  alt="Check In Location map"
+                  className="w-full h-full object-cover"
+                  width={300}
+                  height={300}
+                />
+              </div>
+            )}
+            {checkIn.check_out_latitude && checkIn.check_out_longitude && (
+              <div className="relative flex-1 bg-muted rounded-lg overflow-hidden">
+                <Image
+                  src={getStaticMapUrl(checkIn.check_out_latitude, checkIn.check_out_longitude)}
+                  alt="Check Out Location map"
+                  className="w-full h-full object-cover"
+                  width={300}
+                  height={300}
+                />
+              </div>
+            )}
+          </div>
+        ) : null}
 
         <Button onClick={() => onViewDetails(checkIn)} className="w-full">
           View Details

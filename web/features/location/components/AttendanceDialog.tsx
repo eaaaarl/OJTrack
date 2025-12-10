@@ -17,7 +17,7 @@ import { GEOAPIFY } from '@/constant/geoapify'
 interface AttendanceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  checkIn: Attendance | null
+  checkIn: Attendance | null,
 }
 
 function getStatusBadge(status: string) {

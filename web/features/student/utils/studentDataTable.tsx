@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Eye, Edit, Trash2, Building2, User } from "lucide-react";
+import { MoreHorizontal, Eye, Edit, Trash2, Building2, User, ArchiveRestore } from "lucide-react";
 
 const columnHelper = createColumnHelper<Profile>();
 
@@ -18,9 +18,10 @@ interface studentColumnProps {
   onView: (data: Profile) => void;
   onEdit: (data: Profile) => void;
   onDelete: (data: Profile) => void;
+  onRestore: (data: Profile) => void;
 }
 
-export const studentColumn = ({ onView, onEdit, onDelete }: studentColumnProps) => {
+export const studentColumn = ({ onView, onEdit, onDelete, onRestore }: studentColumnProps) => {
   return [
     // Student Info (Name + ID + Contact)
     columnHelper.accessor("name", {
@@ -42,7 +43,7 @@ export const studentColumn = ({ onView, onEdit, onDelete }: studentColumnProps) 
     // Company + Supervisor
     columnHelper.accessor((row) => row.students[0]?.company, {
       id: "company",
-      header: () => <span className="font-semibold">Comapany Assign</span>,
+      header: () => <span className="font-semibold">Company Assign</span>,
       cell: (info) => {
         const profile = info.row.original;
         const company = info.getValue() || "Not assigned";
@@ -119,21 +120,40 @@ export const studentColumn = ({ onView, onEdit, onDelete }: studentColumnProps) 
                 <Eye className="mr-2 h-4 w-4" />
                 View Profile
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onEdit(profile)}
-                className="cursor-pointer"
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Student
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-red-600 focus:text-red-600 cursor-pointer"
-                onClick={() => onDelete(profile)}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Student
-              </DropdownMenuItem>
+              {profile.status === 'deleted' ? undefined : (
+                <DropdownMenuItem
+                  onClick={() => onEdit(profile)}
+                  className="cursor-pointer"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Student
+                </DropdownMenuItem>
+              )}
+
+              {profile.status === 'deleted' ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-green-600 focus:text-green-600 cursor-pointer"
+                    onClick={() => onRestore(profile)}
+                  >
+                    <ArchiveRestore className="mr-2 h-4 w-4" />
+                    Restore Student
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600 cursor-pointer"
+                    onClick={() => onDelete(profile)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Student
+                  </DropdownMenuItem>
+                </>
+              )}
+
             </DropdownMenuContent>
           </DropdownMenu>
         );

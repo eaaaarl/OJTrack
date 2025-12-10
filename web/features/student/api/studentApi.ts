@@ -188,6 +188,84 @@ export const studentApi = createApi({
       },
       invalidatesTags: ["Students"],
     }),
+
+    restoreStudent: builder.mutation<
+      { meta: { success: boolean; message: string } },
+      { profileId: string; studentProfileId: string; attendanceIds: string[] }
+    >({
+      queryFn: async ({ attendanceIds, profileId, studentProfileId }) => {
+        try {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({
+              status: "active",
+              deleted_at: null,
+            })
+            .eq("id", profileId);
+
+          if (profileError) {
+            return {
+              error: {
+                message: `Failed to restore profile: ${profileError.message}`,
+              },
+            };
+          }
+
+          const { error: studentError } = await supabase
+            .from("student_profiles")
+            .update({
+              status: "active",
+              deleted_at: null,
+            })
+            .eq("id", studentProfileId);
+
+          if (studentError) {
+            return {
+              error: {
+                message: `Failed to restore student profile: ${studentError.message}`,
+              },
+            };
+          }
+
+          /* if (attendanceIds.length > 0) {
+            const { error: attendanceError } = await supabase
+              .from("attendance")
+              .update({
+                status: "",
+                deleted_at: null,
+              })
+              .in("id", attendanceIds);
+
+            if (attendanceError) {
+              return {
+                error: {
+                  message: `Failed to restore attendance records: ${attendanceError.message}`,
+                },
+              };
+            }
+          } */
+
+          return {
+            data: {
+              meta: {
+                success: true,
+                message: `Student Restored.`,
+              },
+            },
+          };
+        } catch (err) {
+          return {
+            error: {
+              message:
+                err instanceof Error
+                  ? err.message
+                  : "Failed to restore student",
+            },
+          };
+        }
+      },
+      invalidatesTags: ["Students"],
+    }),
   }),
 });
 
@@ -195,4 +273,5 @@ export const {
   useGetStudentsQuery,
   useUpdateStudentMutation,
   useDeleteStudentMutation,
+  useRestoreStudentMutation,
 } = studentApi;

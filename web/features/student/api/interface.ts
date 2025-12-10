@@ -15,6 +15,7 @@ export interface Profile {
   attendances?: {
     id: string;
   }[];
+  deleted_at: string;
 }
 
 export interface StudentProfile {
