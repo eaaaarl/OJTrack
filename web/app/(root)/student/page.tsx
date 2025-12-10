@@ -1,21 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Filter, MoreVertical, Eye, Edit, CheckCircle, XCircle, Clock, User2 } from 'lucide-react'
+import { Search, CheckCircle, XCircle, Clock, User2 } from 'lucide-react'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/features/dashboard/components/app-sidebar'
 import { Separator } from '@/components/ui/separator'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from '@/components/ui/breadcrumb'
-import { useGetStudentsQuery } from '@/features/student/api/studentApi'
-import { useAppSelector } from '@/lib/redux/hooks'
+import { useGetStudentsQuery, useUpdateStudentMutation } from '@/features/student/api/studentApi'
+import { useAppSelector, useAppDispatch } from '@/lib/redux/hooks'
 import { skipToken } from '@reduxjs/toolkit/query'
 import { studentColumn } from '@/features/student/utils/studentDataTable'
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Profile } from '@/features/student/api/interface'
+import StudentViewDialog from '@/features/student/components/StudentViewDialog'
+import StudentEditDialog, { StudentEditFormData } from '@/features/student/components/StudentEditDialog'
+import { locationApi } from '@/features/location/api/locationApi'
 
 export default function StudentPage() {
+  const dispatch = useAppDispatch()
   const currentUserId = useAppSelector((state) => state.auth.id)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -23,10 +28,62 @@ export default function StudentPage() {
     currentUserId ? { currentUserId } : skipToken
   );
 
+  const [viewDialogState, setViewDialogState] = useState(false)
+  const [profileToView, setProfileToView] = useState<Profile | null>(null)
+
+  const [editDialogState, setEditDialogState] = useState(false)
+  const [profileToEdit, setProfileToEdit] = useState<Profile | null>(null)
+
+  // Handler for Dialog
+  const ViewDialog = (data: Profile) => {
+    setProfileToView(data)
+    setViewDialogState(true)
+  }
+  const EditDialog = (data: Profile) => {
+    setEditDialogState(true)
+    setProfileToEdit(data)
+  }
+
+  // RTK QUERY MUTATION
+  const [updateStudent, { isLoading }] = useUpdateStudentMutation()
+  // Handler For Mutation EDIT
+  const handleSubmitUpdateStudent = async (formData: StudentEditFormData, profileId: string, studentProfileId: string) => {
+    try {
+      await updateStudent({
+        profileId,
+        studentProfileId,
+        profileData: {
+          email: formData.email,
+          mobileNo: formData.mobileNo,
+          name: formData.name,
+          status: formData.status
+        },
+        studentData: {
+          address: formData.address,
+          company: formData.company,
+          duration: formData.duration,
+          student_id: formData.student_id,
+          supervisor: formData.supervisor
+        }
+      }).unwrap()
+
+      setEditDialogState(false);
+
+      // Invalidate location API cache to refresh student data
+      dispatch(locationApi.util.invalidateTags(['studentAttendance']))
+
+    } catch (error) {
+      console.error('Failed to update student:', error);
+    }
+  }
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: studentsData?.profiles || [],
-    columns: studentColumn(),
+    columns: studentColumn({
+      onView: ViewDialog,
+      onEdit: EditDialog
+    }),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     state: {
@@ -209,6 +266,20 @@ export default function StudentPage() {
             </div>
           </div>
         </div>
+
+        <StudentViewDialog
+          open={viewDialogState}
+          onOpenChange={setViewDialogState}
+          profile={profileToView}
+        />
+
+        <StudentEditDialog
+          open={editDialogState}
+          onOpenChange={setEditDialogState}
+          profile={profileToEdit}
+          isLoading={isLoading}
+          onSubmit={handleSubmitUpdateStudent}
+        />
       </SidebarInset>
     </SidebarProvider>
   )

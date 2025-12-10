@@ -14,7 +14,12 @@ import { MoreHorizontal, Eye, Edit, Trash2, Building2, User } from "lucide-react
 
 const columnHelper = createColumnHelper<Profile>();
 
-export const studentColumn = () => {
+interface studentColumnProps {
+  onView: (data: Profile) => void;
+  onEdit: (data: Profile) => void;
+}
+
+export const studentColumn = ({ onView, onEdit }: studentColumnProps) => {
   return [
     // Student Info (Name + ID + Contact)
     columnHelper.accessor("name", {
@@ -107,14 +112,14 @@ export const studentColumn = () => {
                 Actions
               </DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={() => console.log("View", profile.id)}
+                onClick={() => onView(profile)}
                 className="cursor-pointer"
               >
                 <Eye className="mr-2 h-4 w-4" />
                 View Profile
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => console.log("Edit", profile.id)}
+                onClick={() => onEdit(profile)}
                 className="cursor-pointer"
               >
                 <Edit className="mr-2 h-4 w-4" />
